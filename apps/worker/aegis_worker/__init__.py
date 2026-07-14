@@ -1,0 +1,1 @@
+"""AegisAI Celery worker foundation."""

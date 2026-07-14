@@ -1,0 +1,1 @@
+"""Shared AegisAI service contracts."""

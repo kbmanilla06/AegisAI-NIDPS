@@ -1,0 +1,131 @@
+name: aegisai-nidps
+
+x-common-security: &common-security
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    environment:
+      POSTGRES_DB: aegis
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in an untracked .env file}
+    networks: [data]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis -d aegis"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    <<: *common-security
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+
+  redis:
+    image: redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    <<: *common-security
+    cap_add:
+      - SETGID
+      - SETUID
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      AEGIS_ENVIRONMENT: development
+      AEGIS_PREVENTION_MODE: simulation
+      AEGIS_ALLOWED_ORIGINS: http://localhost:${AEGIS_DASHBOARD_PORT:-5173}
+      AEGIS_DATABASE_URL: postgresql+asyncpg://aegis:${POSTGRES_PASSWORD}@postgres:5432/aegis
+      AEGIS_REDIS_URL: redis://redis:6379/0
+      AEGIS_ARTIFACT_ROOT: /var/lib/aegis/artifacts
+    ports:
+      - "127.0.0.1:${AEGIS_API_PORT:-8000}:8000"
+    networks: [app, data]
+    volumes:
+      - artifacts:/var/lib/aegis/artifacts
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    read_only: true
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    <<: *common-security
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      AEGIS_ENVIRONMENT: development
+      AEGIS_PREVENTION_MODE: simulation
+      AEGIS_DATABASE_URL: postgresql+asyncpg://aegis:${POSTGRES_PASSWORD}@postgres:5432/aegis
+      AEGIS_REDIS_URL: redis://redis:6379/0
+      AEGIS_ARTIFACT_ROOT: /var/lib/aegis/artifacts
+    networks: [data]
+    volumes:
+      - artifacts:/var/lib/aegis/artifacts
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    read_only: true
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+    <<: *common-security
+
+  dashboard:
+    build:
+      context: apps/dashboard
+      args:
+        VITE_API_BASE_URL: http://localhost:${AEGIS_API_PORT:-8000}
+    ports:
+      - "127.0.0.1:${AEGIS_DASHBOARD_PORT:-5173}:8080"
+    networks: [app]
+    depends_on:
+      api: {condition: service_healthy}
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:size=16m
+      - /var/run:size=4m
+      - /tmp:size=16m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    <<: *common-security
+
+networks:
+  app:
+    internal: false
+  data:
+    internal: true
+
+volumes:
+  postgres_data:
+  artifacts:
