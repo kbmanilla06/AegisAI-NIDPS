@@ -1,0 +1,1 @@
+{"schema_version":"1","source_event_id":"synthetic-flow-1","event_time":"2026-07-14T00:00:00Z","src_address":"192.0.2.10","dst_address":"198.51.100.20","src_port":51514,"dst_port":443,"protocol":"tcp","duration_ms":1250,"packet_count":12,"byte_count":4096,"state":"established"}

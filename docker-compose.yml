@@ -82,6 +82,9 @@ services:
       - artifacts:/var/lib/aegis/artifacts
     tmpfs:
       - /tmp:size=64m,mode=1777
+    mem_limit: 384m
+    cpus: 1.0
+    pids_limit: 128
     read_only: true
     depends_on:
       migrate: {condition: service_completed_successfully}
@@ -109,7 +112,37 @@ services:
       - artifacts:/var/lib/aegis/artifacts
     tmpfs:
       - /tmp:size=64m,mode=1777
+    mem_limit: 384m
+    cpus: 0.75
+    pids_limit: 128
     read_only: true
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+    <<: *common-security
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    command:
+      ["celery", "--app", "aegis_worker.celery_app:celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+    environment:
+      AEGIS_ENVIRONMENT: development
+      AEGIS_PREVENTION_MODE: simulation
+      AEGIS_DATABASE_URL: postgresql+asyncpg://aegis:${POSTGRES_PASSWORD}@postgres:5432/aegis
+      AEGIS_REDIS_URL: redis://redis:6379/0
+      AEGIS_ARTIFACT_ROOT: /var/lib/aegis/artifacts
+    networks: [data]
+    volumes:
+      - artifacts:/var/lib/aegis/artifacts
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    read_only: true
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
     depends_on:
       migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}

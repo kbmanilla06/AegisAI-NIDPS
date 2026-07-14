@@ -3,7 +3,7 @@
 **Date:** 2026-07-14
 **Branch:** `feature/sprint-1-identity`
 **Authorized base:** `44dbc5917c758749facd592dc5bfb11ab3012b19`
-**Status:** Locally complete; owner review/publication authorized; hosted Sprint 1 CI pending
+**Status:** Complete, reviewed, published, and verified by hosted CI
 
 ## Entry gate
 
@@ -104,9 +104,15 @@ curl ... POST /api/v1/auth/login
 
 The initial default-project Compose attempt failed because its pre-existing Sprint 0 PostgreSQL volume had been initialized with a different temporary password. No existing volume was deleted. Verification was repeated successfully under isolated project `aegisai-sprint1verify` with a fresh volume.
 
+## Publication gate
+
+The reviewed Sprint 1 implementation was published to public `main` as commit
+`61ef2cc9e79dbd987debc226e4349bd3cb8571a5`. Hosted GitHub Actions CI Run #2
+(`29312141925`) completed successfully for that exact SHA. Its backend, frontend, and
+container jobs all passed; no post-publication correction was required.
+
 ## Skipped or deferred checks
 
-- Hosted Sprint 1 CI was not run because commit/publication were explicitly prohibited.
 - Semgrep, Trivy/container vulnerability scanning, OWASP ZAP, full browser E2E, accessibility automation, load/performance testing, backup/restore, and non-local TLS were not configured Sprint 1 gates. They remain planned for their applicable delivery/operations sprints; Bandit, dependency audits, static guards, container hardening, integration tests, and local health checks ran now.
 - Telemetry, ingestion, dataset, ML, capture, and prevention-action tests were intentionally not run because those capabilities are outside Sprint 1 and absent.
 
@@ -126,7 +132,7 @@ The initial default-project Compose attempt failed because its pre-existing Spri
 | Prevention remains simulation-only and Sprint 2 absent | Pass |
 | Documentation/completion report | Pass |
 | Owner review | Pass; publication authorized |
-| Hosted Sprint 1 CI | Pending commit and push |
+| Hosted Sprint 1 CI | Pass; Run #2 for published commit `61ef2cc9` |
 
 ## Residual risks
 
@@ -139,7 +145,9 @@ The initial default-project Compose attempt failed because its pre-existing Spri
 
 ## Final Sprint 1 decision
 
-**CONDITIONALLY APPROVED.** All authorized Sprint 1 implementation and local gates pass, with no known Critical or High finding. Owner review and publication are authorized; final approval is conditional only on a successful hosted Sprint 1 CI run. Sprint 2 remains blocked.
+**APPROVED.** All authorized Sprint 1 implementation, review, publication, and hosted CI
+gates passed with no known Critical or High finding. Sprint 2 may begin only under its
+separate owner authorization.
 
 ## Publication authorization prompt received
 

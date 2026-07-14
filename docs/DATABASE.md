@@ -1,6 +1,6 @@
 # PostgreSQL Data Design
 
-**Status:** Sprint 1 identity, inventory, session, and audit subset implemented; later tables remain logical design
+**Status:** Sprint 1 identity and Sprint 2 ingestion/flow subsets implemented; later tables remain logical design
 
 ## Conventions
 
@@ -28,10 +28,9 @@
 
 | Table | Key columns and constraints | Notes |
 |---|---|---|
-| ingestion_jobs | id, source_type, status, object_ref, sha256, size, schema_version, submitted_by/sensor_id, correlation_id, error_code | one actor required; bounded safe error; lifecycle indexes |
-| processed_events | source_id+event_key+schema_version unique, processed_at | idempotency ledger |
-| flows | id, event_key, sensor_id, event_time, src/dst address/port, protocol, counters, state, metadata JSONB, schema_version, job_id | indexes on event_time, endpoints, sensor; partitioning reviewed later |
-| raw_event_refs | id, flow_id/job_id, controlled_ref, sha256, expires_at | restricted; no arbitrary path; short retention |
+| ingestion_jobs | id, source_type, status, object_ref, sha256, size, media_type, schema_version, submitted_by/sensor_id, replay/idempotency, correlation/error/count/timestamps | exactly one actor; safe error codes; lifecycle indexes; controlled opaque object refs |
+| processed_events | event_key+schema_version unique, job_id, processed_at | idempotency ledger retained with its corresponding flow |
+| flows | id, event_key, sensor_id, event_time, trusted created_at, src/dst address/port, protocol, counters, state, metadata JSONB, schema_version, job_id | retention uses indexed database `created_at`, never hostile event time; query indexes on event time, endpoints, sensor |
 
 ## Detection and ML
 
@@ -94,7 +93,7 @@
 ## Migration order
 
 1. Identity/reference tables, sessions, assets, sensors, and audit foundation — implemented by reversible migration `0001_sprint1_identity`.
-2. Ingestion jobs and telemetry.
+2. Ingestion jobs and telemetry — implemented by reversible migration `0002_sprint2_ingestion`; seeds `telemetry:read`, `ingestion:submit`, and `ingestion:replay` permissions.
 3. Version registries and detection signals.
 4. Intelligence.
 5. Alerts/evidence/notes.

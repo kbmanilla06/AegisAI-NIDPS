@@ -1,6 +1,6 @@
 # REST and WebSocket API Specification
 
-**Status:** Sprint 1 identity and inventory routes implemented; later routes remain approved design
+**Status:** Sprint 1 identity/inventory and Sprint 2 ingestion/flow routes implemented; later routes remain approved design
 **Base:** `/api/v1`
 **Common:** authenticated unless public health; JSON; correlation ID; stable error `{code,message,correlation_id,details?}`; pagination on collections.
 
@@ -26,11 +26,18 @@
 
 | Method/path | Purpose | Roles | Controls |
 |---|---|---|---|
-| POST `/ingestion/jobs` | Submit controlled telemetry | Security Admin/Sensor scoped | Source enum, size/content limits, quota; returns job ID; audit |
-| GET `/ingestion/jobs/{id}` | Processing status | Submitter/Analyst/Admin | Redacted safe errors |
+| POST `/ingestion/jobs` | Multipart offline upload | Security/System Admin (`ingestion:submit`) | CSRF+Origin; `source_type` plus one file; 8 MiB body/content validation; five/minute/identity; returns `202`; filename/MIME ignored; audit |
+| POST `/ingestion/sensor/jobs` | Sensor upload | Active authenticated sensor | `Authorization: Sensor <id>.<secret>`; `X-Aegis-Source`; raw bounded body; sensor-type/source scope; pre/post-auth throttle; audit |
+| GET `/ingestion/jobs` | Recent processing status | `telemetry:read` | `limit` 1–100; newest first; safe fields only |
+| GET `/ingestion/jobs/{id}` | Processing status | `telemetry:read` | Safe error code; never returns object reference/path or exception |
 | POST `/ingestion/jobs/{id}/replay` | Authorized sample replay | Security Admin | Idempotency key; bounded; audit |
+| GET `/ingestion/metrics` | Aggregate ingestion state | `telemetry:read` | Accepted/rejected/duplicate counts, failed jobs, delayed pending jobs; no high-cardinality labels |
 | GET `/flows` | Query normalized metadata | Analyst/Admin | Time range required, pagination, field redaction |
-| GET `/flows/{id}` | Flow detail | Analyst/Admin | Raw refs require separate permission |
+| GET `/flows/{id}` | Flow detail | `telemetry:read` | Canonical metadata only; no raw object reference |
+
+`source_type` is one of `normalized`, `zeek`, `suricata`, or `pcap`. The first three accept bounded textual records; PCAP/PCAPNG is processed only by the isolated Celery worker. The API stores each upload under an opaque generated reference with SHA-256, queues only the UUID, and never executes content. Replays require an 8–128 character safe `Idempotency-Key` and are valid only for successful jobs with accepted records.
+
+Job states are `pending`, `processing`, `succeeded`, `failed`, or `rejected`. Responses expose only `error_code`; traceback text, filenames, client MIME, and filesystem paths are excluded. Flow collection queries require timezone-aware `start`/`end`, allow at most a 31-day window, and return at most 100 rows.
 
 ## Detection, alerts, incidents
 
@@ -80,7 +87,7 @@ No approval or real-execution route exists in the Sprints 0–9 API.
 | POST `/reports` | Request report | Authorized by type | Async, validated filters, export audit, expiry |
 | GET `/reports/{id}` | Status/download reference | Requester/permitted role | Short-lived access; audit download |
 | GET `/health/live` | Process liveness | Public/local policy | No dependency or secret details |
-| GET `/health/ready` | Readiness | Operations | Minimal dependency status |
+| GET `/health/ready` | Readiness | Operations | Minimal PostgreSQL/Redis status |
 | GET `/metrics` | Prometheus | Monitoring identity/network | Not public; no sensitive labels |
 
 ## WebSocket
@@ -89,7 +96,7 @@ No approval or real-execution route exists in the Sprints 0–9 API.
 
 ## Error and rate-limit policy
 
-Use 400 schema, 401 unauthenticated, 403 unauthorized, 404 non-disclosing absence, 409 state/idempotency conflict, 413 size, 415 format, 422 semantic validation, 429 limit, 503 dependency/degraded. Sprint 1 defaults are configurable: 10 login attempts per IP per 300 seconds and account lockout for 15 minutes after 5 failed attempts.
+Use 400 schema, 401 unauthenticated, 403 unauthorized, 404 non-disclosing absence, 409 state/idempotency conflict, 413 size, 415 format, 422 semantic validation, 429 limit, 503 dependency/degraded. Authentication defaults are 10 login attempts per IP per 300 seconds and account lockout for 15 minutes after 5 failed attempts. Ingestion defaults are five submissions per identity per 60 seconds, an 8 MiB upload, 10,000 records, 5,000 unique PCAP flows, and a 120-second processing limit.
 
 ## Cookie-session and CSRF policy
 

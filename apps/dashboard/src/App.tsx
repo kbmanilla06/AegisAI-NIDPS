@@ -18,6 +18,16 @@ type Sensor = {
   status: string;
   credential_version: number;
 };
+type IngestionJob = {
+  id: string;
+  source_type: string;
+  status: string;
+  accepted_records: number;
+  rejected_records: number;
+  duplicate_records: number;
+  error_code: string | null;
+  created_at: string;
+};
 
 export function App() {
   const [health, setHealth] = useState<Health | null>(null);
@@ -28,6 +38,7 @@ export function App() {
   const [sensors, setSensors] = useState<Sensor[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [issuedCredential, setIssuedCredential] = useState("");
+  const [ingestionJobs, setIngestionJobs] = useState<IngestionJob[]>([]);
 
   const can = (permission: string) => auth?.permissions.includes(permission) ?? false;
 
@@ -49,6 +60,9 @@ export function App() {
     if (auth.permissions.includes("assets:read")) void apiRequest<Asset[]>("/assets").then(setAssets);
     if (auth.permissions.includes("sensors:read")) void apiRequest<Sensor[]>("/sensors").then(setSensors);
     if (auth.permissions.includes("users:read")) void apiRequest<User[]>("/users").then(setUsers);
+    if (auth.permissions.includes("telemetry:read")) {
+      void apiRequest<IngestionJob[]>("/ingestion/jobs").then(setIngestionJobs);
+    }
   }, [auth]);
 
   async function login(event: FormEvent<HTMLFormElement>) {
@@ -76,6 +90,7 @@ export function App() {
     setSensors([]);
     setUsers([]);
     setIssuedCredential("");
+    setIngestionJobs([]);
   }
 
   async function createAsset(event: FormEvent<HTMLFormElement>) {
@@ -127,11 +142,29 @@ export function App() {
     form.reset();
   }
 
+  async function submitTelemetry(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    try {
+      const job = await apiRequest<IngestionJob>("/ingestion/jobs", {
+        method: "POST",
+        csrfToken,
+        body: data,
+      });
+      setIngestionJobs((current) => [job, ...current]);
+      form.reset();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Upload failed");
+    }
+  }
+
   return (
     <main>
       <header>
         <div>
-          <p className="eyebrow">Sprint 1 secure platform shell</p>
+          <p className="eyebrow">Sprint 2 controlled telemetry ingestion</p>
           <h1>AegisAI NIDPS</h1>
         </div>
         <div className="status" role="status" aria-live="polite">
@@ -159,8 +192,31 @@ export function App() {
             </div>
             <button className="secondary" onClick={() => void logout()}>Sign out</button>
           </section>
+          {error && <p className="error" role="alert">{error}</p>}
 
           <div className="grid">
+            {can("telemetry:read") && (
+              <section className="panel">
+                <h2>Telemetry ingestion</h2>
+                <p>Only controlled metadata files are accepted. Uploaded content is treated as hostile.</p>
+                <ul>
+                  {ingestionJobs.map((job) => (
+                    <li key={job.id}>
+                      {job.source_type} · {job.status} · accepted {job.accepted_records} · rejected {job.rejected_records} · duplicate {job.duplicate_records}
+                      {job.error_code ? ` · ${job.error_code}` : ""}
+                    </li>
+                  ))}
+                </ul>
+                {can("ingestion:submit") && (
+                  <form encType="multipart/form-data" onSubmit={(event) => void submitTelemetry(event)}>
+                    <label>Source type<select name="source_type" defaultValue="normalized"><option value="normalized">Canonical flow JSONL</option><option value="zeek">Zeek conn.log</option><option value="suricata">Suricata EVE JSON</option><option value="pcap">Offline PCAP</option></select></label>
+                    <label>Controlled telemetry file<input name="file" type="file" required /></label>
+                    <button type="submit">Submit telemetry</button>
+                  </form>
+                )}
+              </section>
+            )}
+
             {can("assets:read") && (
               <section className="panel">
                 <h2>Assets</h2>

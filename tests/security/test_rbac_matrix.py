@@ -9,6 +9,7 @@ READ_MATRIX = {
         "/api/v1/users": 403,
         "/api/v1/roles": 403,
         "/api/v1/audit/events": 403,
+        "/api/v1/ingestion/jobs": 403,
     },
     "SOC Analyst": {
         "/api/v1/assets": 200,
@@ -16,6 +17,7 @@ READ_MATRIX = {
         "/api/v1/users": 403,
         "/api/v1/roles": 403,
         "/api/v1/audit/events": 403,
+        "/api/v1/ingestion/jobs": 200,
     },
     "Senior Analyst": {
         "/api/v1/assets": 200,
@@ -23,6 +25,7 @@ READ_MATRIX = {
         "/api/v1/users": 403,
         "/api/v1/roles": 403,
         "/api/v1/audit/events": 403,
+        "/api/v1/ingestion/jobs": 200,
     },
     "Security Administrator": {
         "/api/v1/assets": 200,
@@ -30,6 +33,7 @@ READ_MATRIX = {
         "/api/v1/users": 403,
         "/api/v1/roles": 200,
         "/api/v1/audit/events": 200,
+        "/api/v1/ingestion/jobs": 200,
     },
     "System Administrator": {
         "/api/v1/assets": 200,
@@ -37,6 +41,7 @@ READ_MATRIX = {
         "/api/v1/users": 200,
         "/api/v1/roles": 200,
         "/api/v1/audit/events": 200,
+        "/api/v1/ingestion/jobs": 200,
     },
     "Auditor": {
         "/api/v1/assets": 200,
@@ -44,6 +49,7 @@ READ_MATRIX = {
         "/api/v1/users": 403,
         "/api/v1/roles": 200,
         "/api/v1/audit/events": 200,
+        "/api/v1/ingestion/jobs": 200,
     },
 }
 
@@ -86,7 +92,21 @@ def test_every_role_against_protected_create_routes(app_harness: AppHarness, rol
             "roles": ["Viewer"],
         },
     )
+    ingestion = app_harness.client.post(
+        "/api/v1/ingestion/jobs",
+        headers=headers,
+        data={"source_type": "normalized"},
+        files={
+            "file": (
+                "flow.jsonl",
+                b'{"schema_version":"1","event_time":"2026-07-14T00:00:00Z"}\n',
+                "application/json",
+            )
+        },
+    )
     inventory_status = 201 if role in {"Security Administrator", "System Administrator"} else 403
     assert asset.status_code == inventory_status, (role, "assets")
     assert sensor.status_code == inventory_status, (role, "sensors")
     assert user.status_code == (201 if role == "System Administrator" else 403), (role, "users")
+    ingestion_status = 202 if role in {"Security Administrator", "System Administrator"} else 403
+    assert ingestion.status_code == ingestion_status, (role, "ingestion")

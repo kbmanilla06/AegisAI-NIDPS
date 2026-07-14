@@ -6,6 +6,7 @@ backend-check:
 	mypy
 	bandit -c pyproject.toml -r apps services
 	pytest
+	pip-audit
 	python scripts/check_secrets.py
 	python scripts/check_simulation_only.py
 
@@ -14,6 +15,7 @@ frontend-check:
 	npm --prefix apps/dashboard run typecheck
 	npm --prefix apps/dashboard run test
 	npm --prefix apps/dashboard run build
+	npm --prefix apps/dashboard audit --audit-level=high
 
 test: backend-check frontend-check
 

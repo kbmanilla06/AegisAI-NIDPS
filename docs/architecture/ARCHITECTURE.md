@@ -1,6 +1,6 @@
 # System Architecture
 
-**Status:** Approved; Sprint 0 runtime boundary implemented, later components remain proposed
+**Status:** Approved; Sprint 2 identity and ingestion runtime boundaries implemented, later components remain proposed
 
 ## Architectural style
 
@@ -26,7 +26,8 @@ flowchart LR
 |---|---|---|---|---|
 | Dashboard | Analyst/admin UI | REST and WebSocket | Shows bounded error/degraded state | CSP, encoding, accessibility, RBAC UX; server remains authority |
 | API | Auth, validation, orchestration, queries | HTTPS/JSON | Stable errors; no stack traces | Schemas, RBAC, rate limits, audit, correlation IDs |
-| Worker | Parsing, replay, detection, reports, later inference jobs | Queue/object path; DB results | Retry bounded/idempotent; dead-letter state | Resource limits, untrusted-input isolation, replay tests |
+| Worker | Offline parsing, normalization, replay, retention; later detection/reports/inference | Queue UUID; controlled object ref from DB; canonical DB rows | Retry bounded/idempotent; safe failed state | Non-root/read-only, CPU/memory/PID/time/record limits, replay/fuzz tests |
+| Scheduler | Enqueue raw/flow retention work | Registered task names only | Missed cleanup is visible through expiry/metrics | JSON-only tasks, least privilege, bounded resources |
 | PostgreSQL | Authoritative transactional state | SQL | API fails closed for sensitive writes | Constraints, migrations, least privilege, backup plan |
 | Redis | Queue/cache/short-lived coordination | Bounded messages | Degraded async service; never authoritative | Authentication/network isolation, TTLs, queue limits |
 | Monitoring | Metrics/dashboards after later sprint | Scraped metrics | Does not control detections | No secrets/labels with excessive cardinality |
@@ -64,7 +65,7 @@ flowchart LR
 
 ## Key interfaces
 
-- `TelemetryAdapter.parse(source) -> CanonicalEvent[]`
+- `TelemetryAdapter.parse(source) -> CanonicalFlowV1[] | controlled rejection`
 - `FeaturePipeline.transform(events, schema_version) -> FeatureVector[]`
 - `Detector.evaluate(context) -> DetectionSignal[]`
 - `Ensemble.score(signals, asset_context) -> DecisionAssessment`
@@ -79,7 +80,9 @@ The API is the policy enforcement point. A centralized permission service evalua
 
 ## Messaging and idempotency
 
-Queue messages carry event/job ID, tenant-independent project scope, schema version, correlation ID, attempt count, and created time—not secrets or large payloads. Consumers use a database idempotency/processed-event record and bounded retries. Poison messages become a reviewable failed job rather than infinite retries.
+Sprint 2 queue messages carry only an ingestion-job UUID—not secrets, object paths, metadata, or payloads. The worker resolves the controlled reference from PostgreSQL, validates again, commits canonical flows and processed-event identities atomically, and uses two bounded retries. A poison job becomes a reviewable failed record with a sanitized code rather than retrying indefinitely.
+
+The upload data path is: authenticated user/sensor → API body/rate/content cap → opaque `0700` artifact object plus SHA-256/DB job → JSON-only Celery UUID → strict adapter → canonical v1 validation → idempotency ledger and flow rows → immediate raw deletion. Replay reads previously normalized flows and never depends on retained raw bytes. Live interface capture is not an interface in Sprint 2.
 
 ## Failure and degraded behavior
 

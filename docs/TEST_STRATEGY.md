@@ -23,11 +23,15 @@ Empty/null/wrong-type/oversized/Unicode/malformed/truncated/duplicate/out-of-ord
 
 ## Security tooling plan
 
-Ruff/Black/mypy/pytest, Bandit, Semgrep, pip-audit, frontend lint/type/unit/E2E, secret scanning, Trivy/container scan, and authorized local OWASP ZAP later. Exact tools may change only with documented equivalent coverage.
+Ruff format/lint, mypy, pytest, Bandit, pip-audit, frontend lint/type/unit/build, npm audit, secret scanning, and the simulation-only guard are current automated gates. Semgrep, Trivy/container scan, full browser E2E, accessibility automation, load testing, and authorized local OWASP ZAP remain future hardening gates. Exact tools may change only with documented equivalent coverage.
 
 ## Test data
 
 Synthetic fixtures are default. Public dataset samples retain source/license and are never committed if prohibited or excessive. Secrets, private IP context, real credentials, and unauthorized PCAP are excluded. Golden fixtures are small, deterministic, sanitized, and versioned.
+
+Sprint 2 fixtures cover valid, invalid, malformed, duplicate, Unicode, truncated, oversized, mixed-protocol, and out-of-order records. PCAP fixtures are generated in temporary test storage so packet binaries are not committed. Parser fuzzing is deterministic and bounded; every generated input must either produce a canonical v1 record or a controlled error, never an uncaught parser exception.
+
+Sprint 2 ingestion gates cover content/declared-source mismatch, filename indifference, traversal-safe opaque storage, request/upload caps, record/unique-flow/time limits, stable duplicate keys, replay idempotency, sensor source scoping, six-role negative authorization, safe failure codes, raw/flow cleanup, JSON-only Celery envelopes, migration downgrade/upgrade, and repeated worker tasks across event loops.
 
 ## Release-blocking criteria
 

@@ -1,0 +1,2 @@
+{"timestamp":"2026-07-14T00:00:00Z","flow_id":9002,"event_type":"flow","src_ip":"192.0.2.41","dest_ip":"invalid","proto":"TCP","flow":{}}
+{"timestamp":"2026-07-14T00:00:01Z","flow_id":9003,"event_type":"alert","src_ip":"192.0.2.41","dest_ip":"198.51.100.41","proto":"TCP","alert":{"signature":"Deferred to Sprint 3"}}

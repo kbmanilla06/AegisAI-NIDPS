@@ -1,0 +1,2 @@
+{"schema_version":"1","source_event_id":"synthetic-duplicate","event_time":"2026-07-14T00:00:00Z","src_address":"192.0.2.11","dst_address":"198.51.100.21","src_port":51000,"dst_port":53,"protocol":"udp","duration_ms":10,"packet_count":2,"byte_count":180,"state":"complete"}
+{"schema_version":"1","source_event_id":"synthetic-duplicate","event_time":"2026-07-14T00:00:00Z","src_address":"192.0.2.11","dst_address":"198.51.100.21","src_port":51000,"dst_port":53,"protocol":"udp","duration_ms":10,"packet_count":2,"byte_count":180,"state":"complete"}

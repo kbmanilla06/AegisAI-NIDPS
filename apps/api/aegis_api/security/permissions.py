@@ -10,17 +10,27 @@ class PermissionKey(StrEnum):
     SENSORS_READ = "sensors:read"
     SENSORS_MANAGE = "sensors:manage"
     AUDIT_READ = "audit:read"
+    TELEMETRY_READ = "telemetry:read"
+    INGESTION_SUBMIT = "ingestion:submit"
+    INGESTION_REPLAY = "ingestion:replay"
     PREVENTION_READ = "prevention:read"
     PREVENTION_MANAGE = "prevention:manage"
 
 
 ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
     "Viewer": frozenset({PermissionKey.ASSETS_READ}),
-    "SOC Analyst": frozenset({PermissionKey.ASSETS_READ, PermissionKey.SENSORS_READ}),
+    "SOC Analyst": frozenset(
+        {
+            PermissionKey.ASSETS_READ,
+            PermissionKey.SENSORS_READ,
+            PermissionKey.TELEMETRY_READ,
+        }
+    ),
     "Senior Analyst": frozenset(
         {
             PermissionKey.ASSETS_READ,
             PermissionKey.SENSORS_READ,
+            PermissionKey.TELEMETRY_READ,
             PermissionKey.PREVENTION_READ,
         }
     ),
@@ -32,6 +42,9 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.SENSORS_READ,
             PermissionKey.SENSORS_MANAGE,
             PermissionKey.AUDIT_READ,
+            PermissionKey.TELEMETRY_READ,
+            PermissionKey.INGESTION_SUBMIT,
+            PermissionKey.INGESTION_REPLAY,
             PermissionKey.PREVENTION_READ,
             PermissionKey.PREVENTION_MANAGE,
         }
@@ -43,6 +56,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.ASSETS_READ,
             PermissionKey.SENSORS_READ,
             PermissionKey.AUDIT_READ,
+            PermissionKey.TELEMETRY_READ,
             PermissionKey.PREVENTION_READ,
         }
     ),

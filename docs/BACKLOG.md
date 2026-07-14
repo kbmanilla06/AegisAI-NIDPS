@@ -17,14 +17,16 @@
 | S0-11 | Owner decision review | S0-01–10 | Complete; D-13 intentionally deferred to before Sprint 5 |
 | S0-12 | Repository/API/UI/Compose/CI/test scaffold | S0-11 | Complete and locally verified |
 | S0-13 | Health checks and clean-start validation | S0-12 | Complete; all five containers healthy and worker ping passed |
-| S0-14 | Sprint 0 implementation review | S0-13 | Conditionally complete: local gates pass; remote CI execution awaits separately authorized commit/publication |
+| S0-14 | Sprint 0 implementation review | S0-13 | Complete; published commit `44dbc59`, hosted CI Run #1 passed |
 
 ## Forward epics
 
 S1 identity/RBAC/assets/sensors; S2 ingestion; S3 deterministic detection; S4 features; S5 supervised ML; S6 anomaly/ensemble; S7 explainability/intelligence; S8 SOC workflows; S9 simulation policy. Each is blocked until the preceding sprint gate is approved.
 
-## Initial Sprint 1 issue order after Sprint 0 completion
+## Sprint delivery status
 
-Permission matrix → identity schema/migration → password/session lifecycle → auth API → centralized RBAC → audit foundation → assets → sensors/credential rotation → minimal UI → security/integration tests → documentation/review. **Status: implemented and locally verified; awaiting owner review and hosted CI before Sprint 2 authorization.**
+Sprint 1 identity/RBAC/assets/sensors/audit is complete, published as `61ef2cc9`, and hosted CI Run #2 passed.
 
-Sprint 2 telemetry ingestion remains blocked. No ingestion route, packet capture, dataset, model, or real prevention capability was added in Sprint 1.
+Sprint 2 order: fixtures/schema → normalized adapter → Zeek → Suricata flow events → offline PCAP → storage/worker/idempotency → APIs/UI → migration/security/resource tests → documentation. **Status: implemented and locally verified on `feature/sprint-2-ingestion`; uncommitted and awaiting owner review/publication authorization.**
+
+Sprint 3 deterministic detection remains blocked. No live capture, dataset, model, alert generation, detection rules, or real prevention capability was added in Sprint 2.

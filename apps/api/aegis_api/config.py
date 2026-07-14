@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     login_failure_limit: int = Field(default=5, ge=3, le=20)
     login_lockout_minutes: int = Field(default=15, ge=1, le=120)
     password_min_length: int = Field(default=12, ge=12, le=64)
+    ingestion_max_upload_bytes: int = Field(default=8_388_608, ge=1024, le=33_554_432)
+    ingestion_request_overhead_bytes: int = Field(default=65_536, ge=4096, le=1_048_576)
+    ingestion_max_records: int = Field(default=10_000, ge=1, le=100_000)
+    ingestion_max_unique_flows: int = Field(default=5_000, ge=1, le=50_000)
+    ingestion_max_processing_seconds: int = Field(default=120, ge=5, le=600)
+    ingestion_upload_limit: int = Field(default=5, ge=1, le=100)
+    ingestion_upload_window_seconds: int = Field(default=60, ge=10, le=3600)
+    ingestion_pending_delay_seconds: int = Field(default=60, ge=10, le=3600)
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

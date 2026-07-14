@@ -7,7 +7,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from aegis_api.config import Settings, get_settings
 from aegis_api.database import get_db
+from aegis_api.ingestion_dispatch import get_ingestion_dispatcher
+from aegis_api.ingestion_throttle import get_ingestion_throttle
 from aegis_api.main import create_app
 from aegis_api.models import Base, Permission, Role, User
 from aegis_api.security.passwords import password_service
@@ -27,6 +30,8 @@ class AllowThrottle:
 class AppHarness:
     client: TestClient
     session_factory: async_sessionmaker[AsyncSession]
+    artifact_root: Path
+    dispatched_jobs: list[str]
 
     def run(self, operation):  # type: ignore[no-untyped-def]
         async def execute():  # type: ignore[no-untyped-def]
@@ -85,7 +90,18 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
             await db.commit()
 
     asyncio.run(prepare())
-    app = create_app()
+    artifact_root = tmp_path / "artifacts"
+    test_settings = Settings(
+        environment="test",
+        database_url=f"sqlite+aiosqlite:///{database_path}",
+        artifact_root=artifact_root,
+        ingestion_max_upload_bytes=4096,
+        ingestion_request_overhead_bytes=4096,
+        ingestion_max_records=100,
+        ingestion_max_unique_flows=50,
+        ingestion_max_processing_seconds=10,
+    )
+    app = create_app(test_settings)
 
     async def override_db() -> AsyncIterator[AsyncSession]:
         async with session_factory() as db:
@@ -93,7 +109,11 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
 
     throttle: LoginThrottle = AllowThrottle()
     app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_settings] = lambda: test_settings
     app.dependency_overrides[get_login_throttle] = lambda: throttle
+    app.dependency_overrides[get_ingestion_throttle] = lambda: throttle
+    dispatched_jobs: list[str] = []
+    app.dependency_overrides[get_ingestion_dispatcher] = lambda: dispatched_jobs.append
     with TestClient(app, base_url="https://testserver") as client:
-        yield AppHarness(client, session_factory)
+        yield AppHarness(client, session_factory, artifact_root, dispatched_jobs)
     asyncio.run(test_engine.dispose())

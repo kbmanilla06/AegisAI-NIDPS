@@ -160,3 +160,64 @@ class AuditEventOut(BaseModel):
     outcome: str
     correlation_id: str
     safe_metadata: dict[str, object]
+
+
+class IngestionSource(StrEnum):
+    NORMALIZED = "normalized"
+    ZEEK = "zeek"
+    SURICATA = "suricata"
+    PCAP = "pcap"
+
+
+class IngestionJobOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    source_type: str
+    status: str
+    sha256: str
+    size_bytes: int
+    media_type: str
+    schema_version: str
+    submitted_by: UUID | None
+    sensor_id: UUID | None
+    replay_of_id: UUID | None
+    error_code: str | None
+    accepted_records: int
+    rejected_records: int
+    duplicate_records: int
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+    raw_expires_at: datetime | None
+    raw_deleted_at: datetime | None
+
+
+class FlowOut(BaseModel):
+    id: UUID
+    event_key: str
+    schema_version: str
+    source_type: str
+    source_event_id: str | None
+    job_id: UUID
+    sensor_id: UUID | None
+    event_time: datetime
+    src_address: str
+    dst_address: str
+    src_port: int | None
+    dst_port: int | None
+    protocol: str
+    duration_ms: int
+    packet_count: int
+    byte_count: int
+    state: str | None
+    metadata: dict[str, object]
+
+
+class IngestionMetricsOut(BaseModel):
+    jobs_by_status: dict[str, int]
+    accepted_records: int
+    rejected_records: int
+    duplicate_records: int
+    delayed_jobs: int
+    failed_jobs: int

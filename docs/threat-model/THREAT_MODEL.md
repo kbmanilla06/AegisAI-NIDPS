@@ -2,7 +2,7 @@
 
 **Scope:** Sprints 0–9 design; simulation-only prevention
 **Method:** STRIDE plus abuse-case review
-**Status:** Approved Sprint 0 baseline; revisit at every material architecture change
+**Status:** Sprint 2 review applied for the hostile upload, sensor, worker, artifact, and retention boundaries
 
 ## Assets
 
@@ -20,9 +20,9 @@ Severity combines plausible impact and likelihood for the proposed local MVP. Cr
 
 | ID | STRIDE | Threat/path | Impact | Likelihood | Severity | Planned controls | Verification | Residual |
 |---|---|---|---|---|---|---|---|---|
-| TM-01 | S/T | Forged or replayed sensor events | False alerts/data pollution | High | High | Sensor auth/rotation, event identity, replay window, idempotency | Replay and forged-credential tests | Medium |
-| TM-02 | T/D/E | Malicious upload/parser exploit/zip bomb | Code execution or outage | High | Critical | Content validation, isolation, no execution, limits, worker least privilege, safe libraries | Fuzz, malformed, resource-limit tests | Medium |
-| TM-03 | D | Telemetry/alert flood | Queue/storage/UI exhaustion | High | High | Rate/quota limits, backpressure, dedup/suppression, pagination, monitoring | Burst/load and recovery tests | Medium |
+| TM-01 | S/T | Forged or replayed sensor events | False alerts/data pollution | High | High | Hashed rotatable sensor credential, active/source scope, canonical sensor-bound identity, unique ledger, replay idempotency | Forged/source-scope/duplicate/replay tests | Medium; no timestamp replay window yet |
+| TM-02 | T/D/E | Malicious upload/parser exploit/zip bomb | Code execution or outage | High | Critical | Content+schema validation, no archive support/execution, opaque safe files, non-root/read-only worker, byte/record/flow/time/container limits | Deterministic fuzz, malformed/truncated/oversized/traversal/resource tests | Medium; native parser hardening remains |
+| TM-03 | D | Telemetry/alert flood | Queue/storage/UI exhaustion | High | High | Per-identity Redis rate limit, request/record caps, deduplication, bounded queue consumers/query pages, delayed/failed metrics | Limit/rate/idempotency tests; real-stack task checks | Medium; representative load testing deferred |
 | TM-04 | S/E | Credential theft or brute force | Unauthorized access | Medium | High | Adaptive hash, TLS, throttling, expiry/revocation, least privilege, audit | Auth abuse tests | Medium |
 | TM-05 | E | RBAC or mass-assignment bypass | Sensitive changes | Medium | High | Central permission service, explicit fields, negative matrix tests | Per-endpoint role tests | Low |
 | TM-06 | T | SQL/command/path/template injection | Data loss, code execution | Medium | Critical | Parameterization, typed schemas, no shell, internal paths, encoding | SAST and negative tests | Low |
@@ -39,7 +39,7 @@ Severity combines plausible impact and likelihood for the proposed local MVP. Cr
 | TM-17 | T/D | Duplicate or concurrent prevention requests | Repeated future action | Medium | High | Idempotency key, unique constraint, locking, status machine | Replay/concurrency tests | Low |
 | TM-18 | T | Non-expiring/no-rollback policy | Future persistent outage | Medium | Critical | DB constraints, maximum duration, rollback metadata required, permanent action prohibited | Constraint/policy tests | Low |
 | TM-19 | E | Unauthorized/self approval | Future prevention abuse | Medium | High | Explicit permissions and later separation of duties | Role/self-approval tests | Low |
-| TM-20 | D/T | Dependency/queue/DB partial failure | Lost, duplicate, or inconsistent state | High | High | Transactions, idempotency, bounded retries, reconciliation, degraded health | Fault-injection tests | Medium |
+| TM-20 | D/T | Dependency/queue/DB partial failure | Lost, duplicate, or inconsistent state | High | High | Atomic DB work, unique idempotency, late ack, bounded retries, dispatch failure state, engine lifecycle, degraded health | Queue failure, replay, repeated-task, cleanup and health tests | Medium; automated orphan reconciliation deferred |
 | TM-21 | T/E | Compromised dependency/container/CI action | Supply-chain compromise | Medium | Critical | Pinning, lockfiles, scans, provenance, least-privilege CI, reviewed updates | SBOM/scans/workflow review | Medium |
 | TM-22 | R/E | Malicious insider exports or alters sensitive data | Privacy/integrity loss | Medium | High | Least privilege, export audit/redaction, two-person review for sensitive future controls | Permission and audit review | Medium |
 | TM-23 | D | Oversized model/explanation/report workload | Resource exhaustion | Medium | Medium | Size/time/memory limits, async jobs, pagination/cache | Stress/timeout tests | Low |

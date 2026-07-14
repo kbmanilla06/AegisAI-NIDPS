@@ -22,6 +22,7 @@
 | C-16 | Incident and analyst-note retention is 180 days; generated reports and stored predictions are retained for 30 days; exceptional investigation holds are disabled for the MVP. |
 | C-17 | The owner approved the recommended defaults and authorized the Sprint 0 foundation on 2026-07-14. |
 | C-18 | Hosted Sprint 0 CI Run #1 passed for commit `44dbc59`; the owner authorized Sprint 1 on 2026-07-14. |
+| C-19 | Sprint 1 was published as `61ef2cc9e79dbd987debc226e4349bd3cb8571a5`; hosted CI Run #2 (`29312141925`) passed before Sprint 2 began. |
 
 ## Safe working assumptions
 
@@ -47,6 +48,9 @@
 | D-09 | Safe model serialization | Choose after library/version threat review; prohibit arbitrary untrusted pickle. |
 | D-10 | Sprint 1 password/session defaults | Argon2id (64 MiB, 3 iterations, parallelism 1); 12-character minimum; 30-minute idle and 8-hour absolute session expiry; 5 failures lock an account for 15 minutes; Redis limits an IP to 10 login attempts per 300 seconds. |
 | D-11 | Built-in roles | Viewer, SOC Analyst, Senior Analyst, Security Administrator, System Administrator, and Auditor are migration-seeded; permission enforcement is server-side and centralized. |
+| D-12 | Sprint 2 ingestion contract | Canonical flow schema v1; normalized JSONL first, strict Zeek connection logs, Suricata EVE flow events, and offline PCAP/PCAPNG only. No archive input and no live capture. |
+| D-14 | Sprint 2 bounded defaults | 8 MiB upload, 10,000 records, 5,000 unique PCAP flows, 120-second worker soft limit, five submissions per identity per 60 seconds, 60-second delayed-job threshold. |
+| D-15 | Ingestion idempotency | SHA-256 canonical event identity plus sensor scope; unique ledger/flow constraints; replay uses an actor-scoped idempotency key and reuses normalized records rather than retained raw content. |
 ## Owner decisions deferred beyond scaffolding
 
 | ID | Decision | Why it blocks |

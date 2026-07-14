@@ -1,0 +1,2 @@
+{"schema_version":"1","source_event_id":"later","event_time":"2026-07-14T00:02:00Z","src_address":"192.0.2.12","dst_address":"198.51.100.22","src_port":51001,"dst_port":443,"protocol":"tcp","duration_ms":20,"packet_count":3,"byte_count":220,"state":"complete"}
+{"schema_version":"1","source_event_id":"earlier","event_time":"2026-07-14T00:01:00Z","src_address":"192.0.2.12","dst_address":"198.51.100.22","src_port":51002,"dst_port":443,"protocol":"tcp","duration_ms":20,"packet_count":3,"byte_count":220,"state":"complete"}

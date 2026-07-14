@@ -1,0 +1,2 @@
+{"schema_version":"1","event_time":"2026-07-14T00:00:00Z"
+{"schema_version":"1","source_event_id":"unicode-☃","event_time":"2026-07-14T00:00:00Z","src_address":"not-an-address","dst_address":"198.51.100.20","src_port":1,"dst_port":2,"protocol":"tcp","duration_ms":0,"packet_count":1,"byte_count":1,"state":"bad state with spaces"}

@@ -4,7 +4,7 @@ type RequestOptions = RequestInit & { csrfToken?: string };
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
-  if (options.body) headers.set("Content-Type", "application/json");
+  if (options.body && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
   if (options.csrfToken) headers.set("X-CSRF-Token", options.csrfToken);
   const response = await fetch(`${apiBase}/api/v1${path}`, {
     ...options,

@@ -1,16 +1,37 @@
 # Canonical Contract Schemas
 
-**Status:** Conceptual v1; exact JSON Schema/OpenAPI definitions are Sprint implementation work
+**Status:** Canonical telemetry flow v1 implemented; later contracts remain conceptual
 
 ## Common envelope
 
 All internal records include `id`, `schema_version`, `occurred_at` or `created_at`, `correlation_id`, `source`, and provenance. Timestamps are UTC ISO-8601; IP addresses use canonical textual representation; ports are integers 0–65535; unknown is distinct from zero.
 
-## Canonical telemetry event v1
+## Canonical telemetry flow v1
 
-Required: event ID/key, event time, ingest time, sensor/source, source/destination address, protocol, direction or unknown, schema version, provenance. Optional by protocol: ports, packet/byte counts, duration, TCP flags/state, DNS/HTTP/TLS metadata, source-native reference. Payload content is excluded by default.
+The implemented contract is `CanonicalFlowV1` in `services/aegis_services/ingestion/schema.py`. Unknown fields are rejected and instances are immutable after validation.
 
-Validation rules: finite non-negative counts; bounded metadata; known protocol vocabulary plus explicit `other`; no ground-truth attack label in serving record; deterministic event fingerprint.
+| Field | Type/rules |
+|---|---|
+| `schema_version` | Required literal `"1"` |
+| `source_type` | `normalized`, `zeek`, `suricata`, or `pcap` |
+| `source_event_id` | Optional string, 1–128 characters |
+| `event_time` | Required timezone-aware timestamp; normalized to UTC |
+| `src_address`, `dst_address` | Required valid IPv4/IPv6; canonicalized |
+| `src_port`, `dst_port` | Both absent or both integers 0–65535 |
+| `protocol` | Lowercase alphanumeric string, 1–16 characters |
+| `duration_ms` | Integer 0–604,800,000 |
+| `packet_count`, `byte_count` | Non-negative signed 64-bit integers |
+| `state` | Optional 0–32 character safe token |
+| `metadata` | At most 12 safe-key scalar fields; strings at most 128 characters |
+
+Payload bytes, filenames, MIME declarations, labels, detection results, and internal paths are excluded. The stable event key is SHA-256 over the sorted canonical JSON plus the authenticated sensor identity (or null for an authorized user upload). The key and schema version are unique in both the processed-event ledger and flow store, giving deterministic duplicate handling independent of arrival order.
+
+### Source mappings
+
+- Normalized JSONL maps field-for-field and forbids extras.
+- Zeek TSV uses declared `#fields`/`#types`; Zeek JSON uses strict connection fields. `ts`, `id.orig_h/p`, `id.resp_h/p`, `proto`, `duration`, `orig_pkts`/`resp_pkts`, `orig_bytes`/`resp_bytes`, `conn_state`, and optional `uid` map to the canonical fields.
+- Suricata EVE accepts only `event_type=flow`; it maps `timestamp`, endpoint IP/ports, `proto`, `flow.age`, packet/byte counters, `flow.state`, and optional `flow_id`. Other EVE event shapes are rejected, not coerced into flows.
+- PCAP/PCAPNG is parsed offline and aggregated by directional packet tuple into bounded flow metadata. Packet payload content is never persisted.
 
 ## Feature vector v1
 
@@ -46,3 +67,4 @@ Prohibited: permanent duration, shell command as executable input, missing rollb
 - Required-field removal, meaning/type change, or ordering change creates a new major version.
 - Consumers declare supported versions and fail safely on incompatibility.
 - Stored alerts preserve the versions that produced them; re-evaluation creates a new assessment rather than rewriting history.
+- Canonical flow v1 is a major contract. Any required-field/type/meaning change creates v2; adapters must explicitly select a supported version.
