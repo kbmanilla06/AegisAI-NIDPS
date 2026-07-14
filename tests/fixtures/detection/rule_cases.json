@@ -1,0 +1,12 @@
+{
+  "schema_version": "detection-fixtures/v1",
+  "documentation_ranges_only": true,
+  "cases": [
+    {"rule": "behavior.port_scan", "threshold": 3, "expected": "match"},
+    {"rule": "behavior.repeated_failure", "threshold": 3, "expected": "match"},
+    {"rule": "behavior.high_connection_rate", "threshold": 3, "expected": "match"},
+    {"rule": "behavior.dns_volume", "expected": "blocked_without_dns_event_contract"},
+    {"rule": "behavior.possible_beaconing", "expected": "draft_disabled"},
+    {"rule": "behavior.brute_force", "expected": "blocked_without_authentication_event_contract"}
+  ]
+}

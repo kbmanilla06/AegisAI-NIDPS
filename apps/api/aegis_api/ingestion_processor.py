@@ -9,8 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from aegis_api.audit import record_audit
 from aegis_api.config import Settings
+from aegis_api.detection_processor import create_detection_run
 from aegis_api.ingestion_storage import delete_object, resolve_object_ref
-from aegis_api.models import Flow, IngestionJob, ProcessedEvent
+from aegis_api.models import Flow, IngestionJob, ProcessedEvent, SignatureEvent
+from aegis_services.detection.schema import CanonicalSignatureEventV1, signature_event_key
 from aegis_services.ingestion import FatalIngestionError, ParseLimits, event_key, parse_file
 from aegis_services.ingestion.schema import CanonicalFlowV1
 
@@ -19,13 +21,14 @@ async def process_ingestion_job(
     job_id: UUID,
     settings: Settings,
     session_factory: async_sessionmaker[AsyncSession],
-) -> None:
+) -> UUID | None:
     delete_after_commit: str | None = None
+    detection_run_id: UUID | None = None
     async with session_factory() as db:
         async with db.begin():
             job = await _locked_job(db, job_id)
             if job is None or job.status in {"succeeded", "rejected"}:
-                return
+                return None
             job.status = "processing"
             job.started_at = datetime.now(UTC)
             job.error_code = None
@@ -34,18 +37,24 @@ async def process_ingestion_job(
                 await _process_replay(db, job)
             else:
                 delete_after_commit = await _process_upload(db, job, settings)
+            if job.status == "succeeded":
+                detection_run_id = await create_detection_run(
+                    db, job.id, job.replay_of_id or job.id
+                )
 
     if delete_after_commit is not None:
         try:
             delete_object(settings.artifact_root, delete_after_commit)
         except (OSError, ValueError):
-            return
-        async with session_factory() as db:
-            async with db.begin():
-                job = await _locked_job(db, job_id)
-                if job is not None and job.object_ref == delete_after_commit:
-                    job.object_ref = None
-                    job.raw_deleted_at = datetime.now(UTC)
+            pass
+        else:
+            async with session_factory() as db:
+                async with db.begin():
+                    job = await _locked_job(db, job_id)
+                    if job is not None and job.object_ref == delete_after_commit:
+                        job.object_ref = None
+                        job.raw_deleted_at = datetime.now(UTC)
+    return detection_run_id
 
 
 async def _locked_job(db: AsyncSession, job_id: UUID) -> IngestionJob | None:
@@ -80,8 +89,9 @@ async def _process_upload(db: AsyncSession, job: IngestionJob, settings: Setting
         return None
 
     valid_flows = [item.flow for item in parsed if item.flow is not None]
+    valid_signatures = [item.signature for item in parsed if item.signature is not None]
     job.rejected_records = sum(item.error_code is not None for item in parsed)
-    if not valid_flows:
+    if not valid_flows and not valid_signatures:
         job.status = "rejected"
         job.error_code = "all_records_rejected"
         job.completed_at = datetime.now(UTC)
@@ -91,6 +101,12 @@ async def _process_upload(db: AsyncSession, job: IngestionJob, settings: Setting
     for flow in valid_flows:
         assert flow is not None
         if await _store_flow(db, job, flow):
+            job.accepted_records += 1
+        else:
+            job.duplicate_records += 1
+    for signature in valid_signatures:
+        assert signature is not None
+        if await _store_signature(db, job, signature):
             job.accepted_records += 1
         else:
             job.duplicate_records += 1
@@ -138,6 +154,55 @@ async def _store_flow(db: AsyncSession, job: IngestionJob, flow: CanonicalFlowV1
                     byte_count=flow.byte_count,
                     state=flow.state,
                     flow_metadata=flow.metadata,
+                )
+            )
+            await db.flush()
+    except IntegrityError:
+        return False
+    return True
+
+
+async def _store_signature(
+    db: AsyncSession, job: IngestionJob, event: CanonicalSignatureEventV1
+) -> bool:
+    identity = signature_event_key(event, str(job.sensor_id) if job.sensor_id else None)
+    exists = await db.scalar(
+        select(ProcessedEvent.id).where(
+            ProcessedEvent.event_key == identity,
+            ProcessedEvent.schema_version == event.schema_version,
+        )
+    )
+    if exists is not None:
+        return False
+    try:
+        async with db.begin_nested():
+            db.add(
+                ProcessedEvent(
+                    event_key=identity,
+                    schema_version=event.schema_version,
+                    job_id=job.id,
+                )
+            )
+            db.add(
+                SignatureEvent(
+                    event_key=identity,
+                    schema_version=event.schema_version,
+                    job_id=job.id,
+                    sensor_id=job.sensor_id,
+                    source_event_id=event.source_event_id,
+                    event_time=event.event_time,
+                    src_address=event.src_address,
+                    dst_address=event.dst_address,
+                    src_port=event.src_port,
+                    dst_port=event.dst_port,
+                    protocol=event.protocol,
+                    signature_id=event.signature_id,
+                    signature_revision=event.signature_revision,
+                    signature_name=event.signature_name,
+                    category=event.category,
+                    reported_severity=event.reported_severity,
+                    reported_action=event.reported_action,
+                    flow_id=event.flow_id,
                 )
             )
             await db.flush()

@@ -13,6 +13,7 @@ from typing import Any, BinaryIO
 import dpkt
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from aegis_services.detection.schema import CanonicalSignatureEventV1
 from aegis_services.ingestion.schema import CanonicalFlowV1, ParsedRecord
 
 MAX_LINE_BYTES = 65_536
@@ -126,10 +127,15 @@ def _parse_json_lines(
                 value = json.loads(raw_line.decode("utf-8"))
                 if not isinstance(value, dict):
                     raise ValueError
-                yield ParsedRecord(flow=normalizer(value))
+                normalized = normalizer(value)
+                if isinstance(normalized, CanonicalSignatureEventV1):
+                    yield ParsedRecord(signature=normalized)
+                else:
+                    yield ParsedRecord(flow=normalized)
             except (
                 UnicodeDecodeError,
                 json.JSONDecodeError,
+                KeyError,
                 ValidationError,
                 ValueError,
                 TypeError,
@@ -254,7 +260,9 @@ def _parse_zeek(path: Path, limits: ParseLimits, started: float) -> Iterator[Par
                 yield ParsedRecord(error_code="invalid_record")
 
 
-def _normalize_suricata(value: dict[str, Any]) -> CanonicalFlowV1:
+def _normalize_suricata(value: dict[str, Any]) -> CanonicalFlowV1 | CanonicalSignatureEventV1:
+    if value.get("event_type") == "alert":
+        return _normalize_suricata_alert(value)
     if value.get("event_type") != "flow" or not isinstance(value.get("flow"), dict):
         raise ValueError("unsupported event type")
     flow = value["flow"]
@@ -276,6 +284,29 @@ def _normalize_suricata(value: dict[str, Any]) -> CanonicalFlowV1:
         byte_count=byte_count,
         state=str(flow["state"]) if flow.get("state") else None,
         metadata={"app_proto": str(value["app_proto"])} if value.get("app_proto") else {},
+    )
+
+
+def _normalize_suricata_alert(value: dict[str, Any]) -> CanonicalSignatureEventV1:
+    alert = value.get("alert")
+    if not isinstance(alert, dict):
+        raise ValueError("missing alert")
+    flow_id = value.get("flow_id")
+    return CanonicalSignatureEventV1(
+        source_event_id=str(flow_id) if flow_id is not None else None,
+        event_time=_parse_timestamp(value["timestamp"]),
+        src_address=str(value["src_ip"]),
+        dst_address=str(value["dest_ip"]),
+        src_port=_integer(value.get("src_port")),
+        dst_port=_integer(value.get("dest_port")),
+        protocol=str(value["proto"]).lower(),
+        signature_id=_integer(alert["signature_id"]),
+        signature_revision=_integer(alert["rev"]),
+        signature_name=str(alert["signature"]),
+        category=str(alert["category"]),
+        reported_severity=_integer(alert["severity"]),
+        reported_action=str(alert["action"]) if alert.get("action") else None,
+        flow_id=str(flow_id) if flow_id is not None else None,
     )
 
 

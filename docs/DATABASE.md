@@ -1,6 +1,6 @@
 # PostgreSQL Data Design
 
-**Status:** Sprint 1 identity and Sprint 2 ingestion/flow subsets implemented; later tables remain logical design
+**Status:** Sprint 1 identity, Sprint 2 ingestion/flow, and Sprint 3 deterministic detection/alert subsets implemented; later tables remain logical design
 
 ## Conventions
 
@@ -36,8 +36,11 @@
 
 | Table | Key columns and constraints | Notes |
 |---|---|---|
-| rule_versions | id, rule_key, version, type, definition_hash, enabled, created_by; unique key+version | immutable version records |
-| detection_signals | id, flow/window ref, source_type, category, score, confidence, evidence JSONB, rule_version_id/model_version_id, event_time | exactly applicable version refs validated by service/check |
+| rule_versions | id, rule_key+version unique, schema/evaluator, parameters/evidence/MITRE JSON, window, severity/guidance/rationale, definition_hash unique, lifecycle, is_active, creator/reviewer/timestamps | partial unique active rule; PostgreSQL trigger makes definition fields immutable |
+| rule_activations | id, rule_key, version ref nullable for deactivation, action, actor, reason, regression evidence, previous version, occurred_at | append-only lifecycle provenance |
+| signature_events | id, event_key+schema_version unique, source job/sensor, event time, normalized tuple, signature ID/revision/category/severity, created_at | strict no-payload canonical signature v1; 30-day source-event retention |
+| detection_runs | id, source job unique, status, ruleset hash, counts, safe error, timestamps | persisted before dispatch; pending reconciliation; 180-day retention |
+| detection_signals | id, run, optional rule version/signature event, source/category/severity, series/semantic keys, window/group/evidence JSON and hash | semantic key unique; no Sprint 3 risk/confidence fields |
 | feature_schema_versions | id, name+version unique, ordered_definition, hash, status | immutable |
 | dataset_versions | id, name+version unique, source, license, sha256, manifest, split_manifest | controlled metadata, no raw data in DB/Git |
 | model_versions | id, name+version unique, algorithm, artifact_ref, sha256, dataset_version_id, feature_schema_version_id, runtime, status, card_ref | activation permission/audit; one active per purpose via partial unique index |
@@ -52,8 +55,8 @@
 | intelligence_sources | id, name unique, trust_level, terms, enabled | provenance |
 | indicators | id, type, normalized_value_hash/value policy, source_id, confidence, first/last_seen, expires_at | normalized unique by type/value/source/time; expiry index |
 | indicator_matches | id, indicator_id, flow/alert ref, matched_at, state | preserves provenance |
-| alerts | id, fingerprint, first/last_seen, severity, confidence, risk_score check 0–100, category, status, assignee, assessment_version, created_at | fingerprint/suppression indexes; valid transition service/DB guard |
-| alert_evidence | id, alert_id, signal_id/ref, evidence_type, payload, occurred_at | restrict deletion; no secret/raw payload by default |
+| alerts | id, fingerprint unique and schema, source/category/severity, status fixed `new`, grouping JSON, optional rule/sensor, occurrence/overflow counts, first/last seen, created/updated | Sprint 3 has no assignee, risk, confidence, incident, or disposition workflow |
+| alert_evidence | id, alert_id, nullable signal_id, bounded evidence snapshot/hash, occurred_at, created_at | source flow IDs are explanatory references only; snapshot remains after flow retention |
 | alert_notes | id, alert_id, author_id, body, created_at, edited_at | sanitize/display safely; audit edits |
 | incidents | id, title, severity, status, owner_id, opened/closed timestamps, root_cause, containment, recovery, version | closure requirements; status index |
 | incident_alerts | incident_id+alert_id unique | no orphan by restricted FK |
@@ -94,9 +97,9 @@
 
 1. Identity/reference tables, sessions, assets, sensors, and audit foundation — implemented by reversible migration `0001_sprint1_identity`.
 2. Ingestion jobs and telemetry — implemented by reversible migration `0002_sprint2_ingestion`; seeds `telemetry:read`, `ingestion:submit`, and `ingestion:replay` permissions.
-3. Version registries and detection signals.
+3. Rule versions/activations, canonical signatures, runs/signals, and alert/evidence foundation — implemented by reversible migration `0003_sprint3_detection`; seeds seven permissions and three approved active behavioral rules.
 4. Intelligence.
-5. Alerts/evidence/notes.
+5. Alert workflow/notes.
 6. Incidents/timeline.
 7. Prevention policies/allowlists/requests/gates/previews/simulation records.
 8. Configuration/notifications/reports/retention.

@@ -1,4 +1,4 @@
-from aegis_worker.celery_app import celery_app, ping, process_ingestion
+from aegis_worker.celery_app import celery_app, evaluate_detection, ping, process_ingestion
 
 
 def test_worker_accepts_json_only() -> None:
@@ -14,6 +14,15 @@ def test_health_task_is_bounded() -> None:
 def test_ingestion_task_envelope_rejects_non_uuid() -> None:
     try:
         process_ingestion.run("not-a-uuid")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("malformed task identifier must be rejected")
+
+
+def test_detection_task_envelope_rejects_non_uuid() -> None:
+    try:
+        evaluate_detection.run("not-a-uuid")
     except ValueError:
         pass
     else:

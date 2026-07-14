@@ -9,6 +9,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from aegis_services.detection.schema import CanonicalSignatureEventV1
+
 SCHEMA_VERSION = "1"
 
 
@@ -71,10 +73,12 @@ class CanonicalFlowV1(BaseModel):
 @dataclass(frozen=True)
 class ParsedRecord:
     flow: CanonicalFlowV1 | None = None
+    signature: CanonicalSignatureEventV1 | None = None
     error_code: str | None = None
 
     def __post_init__(self) -> None:
-        if (self.flow is None) == (self.error_code is None):
+        outcomes = sum(item is not None for item in (self.flow, self.signature, self.error_code))
+        if outcomes != 1:
             raise ValueError("parsed record must contain exactly one result")
 
 

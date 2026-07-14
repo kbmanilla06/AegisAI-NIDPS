@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { apiRequest } from "./api";
+import { apiBase, apiRequest } from "./api";
 
 type Health = { status: string; prevention_mode: string };
 type User = { id: string; email: string; roles: string[]; is_active: boolean; version: number };
@@ -28,6 +28,34 @@ type IngestionJob = {
   error_code: string | null;
   created_at: string;
 };
+type RuleVersion = {
+  id: string;
+  rule_key: string;
+  version: number;
+  name: string;
+  description: string;
+  category: string;
+  evaluator_key: string;
+  parameters: Record<string, unknown>;
+  window_seconds: number;
+  severity: string;
+  false_positive_guidance: string;
+  investigation_guidance: string;
+  prevention_recommendation: string;
+  lifecycle_state: string;
+  is_active: boolean;
+};
+type Alert = {
+  id: string;
+  source_type: string;
+  category: string;
+  severity: string;
+  status: string;
+  grouping: Record<string, unknown>;
+  occurrence_count: number;
+  first_seen: string;
+  last_seen: string;
+};
 
 export function App() {
   const [health, setHealth] = useState<Health | null>(null);
@@ -39,6 +67,9 @@ export function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [issuedCredential, setIssuedCredential] = useState("");
   const [ingestionJobs, setIngestionJobs] = useState<IngestionJob[]>([]);
+  const [rules, setRules] = useState<RuleVersion[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [liveAlerts, setLiveAlerts] = useState(false);
 
   const can = (permission: string) => auth?.permissions.includes(permission) ?? false;
 
@@ -62,6 +93,26 @@ export function App() {
     if (auth.permissions.includes("users:read")) void apiRequest<User[]>("/users").then(setUsers);
     if (auth.permissions.includes("telemetry:read")) {
       void apiRequest<IngestionJob[]>("/ingestion/jobs").then(setIngestionJobs);
+    }
+    if (auth.permissions.includes("rules:read")) {
+      void apiRequest<RuleVersion[]>("/rules").then(setRules);
+    }
+    if (auth.permissions.includes("alerts:read")) {
+      const refresh = () => void apiRequest<Alert[]>("/alerts").then(setAlerts);
+      refresh();
+      const timer = window.setInterval(refresh, 30_000);
+      const socket = new WebSocket(`${apiBase.replace(/^http/, "ws")}/ws/v1/alerts`);
+      socket.onopen = () => setLiveAlerts(true);
+      socket.onmessage = (event) => {
+        const message = JSON.parse(String(event.data)) as { event?: string };
+        if (message.event === "alert_changed") refresh();
+      };
+      socket.onerror = () => setLiveAlerts(false);
+      socket.onclose = () => setLiveAlerts(false);
+      return () => {
+        window.clearInterval(timer);
+        socket.close();
+      };
     }
   }, [auth]);
 
@@ -91,6 +142,9 @@ export function App() {
     setUsers([]);
     setIssuedCredential("");
     setIngestionJobs([]);
+    setRules([]);
+    setAlerts([]);
+    setLiveAlerts(false);
   }
 
   async function createAsset(event: FormEvent<HTMLFormElement>) {
@@ -160,11 +214,67 @@ export function App() {
     }
   }
 
+  async function createRuleDraft(event: FormEvent<HTMLFormElement>, current: RuleVersion) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const threshold = Number(data.get("threshold"));
+    const draft = await apiRequest<RuleVersion>(`/rules/${current.rule_key}/versions`, {
+      method: "POST",
+      csrfToken,
+      body: JSON.stringify({
+        name: current.name,
+        description: current.description,
+        category: current.category,
+        evaluator_key: current.evaluator_key,
+        parameters: { ...current.parameters, threshold },
+        window_seconds: current.window_seconds,
+        severity: current.severity,
+        mitre_mappings: [],
+        false_positive_guidance: current.false_positive_guidance,
+        investigation_guidance: current.investigation_guidance,
+        prevention_recommendation: current.prevention_recommendation,
+        change_rationale: "Administrator-created threshold draft for reviewed regression testing.",
+      }),
+    });
+    setRules((items) => [draft, ...items]);
+    form.reset();
+  }
+
+  async function reviewRule(rule: RuleVersion) {
+    const reviewed = await apiRequest<RuleVersion>(`/rule-versions/${rule.id}/review`, {
+      method: "POST",
+      csrfToken,
+      body: JSON.stringify({
+        approved: true,
+        reason: "Administrator confirms deterministic regression evidence was reviewed.",
+        regression_evidence: "local-sprint3-regression-suite",
+      }),
+    });
+    setRules((items) => items.map((item) => item.id === reviewed.id ? reviewed : item));
+  }
+
+  async function activateRule(rule: RuleVersion) {
+    const current = rules.find((item) => item.rule_key === rule.rule_key && item.is_active);
+    const activated = await apiRequest<RuleVersion>(`/rule-versions/${rule.id}/activate`, {
+      method: "POST",
+      csrfToken,
+      body: JSON.stringify({
+        reason: "Activate the approved deterministic rule version.",
+        regression_evidence: "local-sprint3-regression-suite",
+        expected_active_version_id: current?.id ?? null,
+      }),
+    });
+    setRules((items) => items.map((item) => item.rule_key === activated.rule_key
+      ? { ...item, is_active: item.id === activated.id }
+      : item));
+  }
+
   return (
     <main>
       <header>
         <div>
-          <p className="eyebrow">Sprint 2 controlled telemetry ingestion</p>
+          <p className="eyebrow">Sprint 3 deterministic detection</p>
           <h1>AegisAI NIDPS</h1>
         </div>
         <div className="status" role="status" aria-live="polite">
@@ -195,6 +305,48 @@ export function App() {
           {error && <p className="error" role="alert">{error}</p>}
 
           <div className="grid">
+            {can("alerts:read") && (
+              <section className="panel">
+                <h2>Deterministic alerts</h2>
+                <p role="status">Live updates: {liveAlerts ? "connected" : "polling fallback"}</p>
+                <ul>
+                  {alerts.map((alert) => (
+                    <li key={alert.id}>
+                      {alert.severity} · {alert.category} · {alert.source_type} · occurrences {alert.occurrence_count}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {can("rules:read") && (
+              <section className="panel">
+                <h2>Detection rules</h2>
+                <p>Thresholds and evidence are versioned. Rules never invoke prevention.</p>
+                <ul>
+                  {rules.map((rule) => (
+                    <li key={rule.id}>
+                      <strong>{rule.name}</strong> v{rule.version} · {rule.lifecycle_state}
+                      {rule.is_active ? " · active" : ""}
+                      <p>{rule.false_positive_guidance}</p>
+                      {can("rules:review") && rule.lifecycle_state === "draft" && (
+                        <button className="secondary" onClick={() => void reviewRule(rule)}>Approve reviewed draft</button>
+                      )}
+                      {can("rules:activate") && rule.lifecycle_state === "approved" && !rule.is_active && (
+                        <button className="secondary" onClick={() => void activateRule(rule)}>Activate version</button>
+                      )}
+                      {can("rules:write") && rule.is_active && (
+                        <form onSubmit={(event) => void createRuleDraft(event, rule)}>
+                          <label>New threshold<input name="threshold" type="number" min="2" max="100000" required /></label>
+                          <button type="submit">Create draft version</button>
+                        </form>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             {can("telemetry:read") && (
               <section className="panel">
                 <h2>Telemetry ingestion</h2>

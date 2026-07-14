@@ -27,6 +27,6 @@ S1 identity/RBAC/assets/sensors; S2 ingestion; S3 deterministic detection; S4 fe
 
 Sprint 1 identity/RBAC/assets/sensors/audit is complete, published as `61ef2cc9`, and hosted CI Run #2 passed.
 
-Sprint 2 order: fixtures/schema → normalized adapter → Zeek → Suricata flow events → offline PCAP → storage/worker/idempotency → APIs/UI → migration/security/resource tests → documentation. **Status: implemented and locally verified on `feature/sprint-2-ingestion`; uncommitted and awaiting owner review/publication authorization.**
+Sprint 2 order: fixtures/schema → normalized adapter → Zeek → Suricata flow events → offline PCAP → storage/worker/idempotency → APIs/UI → migration/security/resource tests → documentation. **Status: complete and published on `main` at `29c2891f`; hosted CI Run #4 passed.**
 
-Sprint 3 deterministic detection remains blocked. No live capture, dataset, model, alert generation, detection rules, or real prevention capability was added in Sprint 2.
+Sprint 3 deterministic detection was authorized on 2026-07-14 using the approved defaults in `docs/SPRINT_3_IMPLEMENTATION_PLAN.md`. Implementation and local verification are complete on `feature/sprint-3-detection` and remain uncommitted pending the Sprint 3 review/publication gate. No Sprint 4, dataset, model, live-capture, or real-prevention work is authorized.

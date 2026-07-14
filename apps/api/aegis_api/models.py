@@ -202,7 +202,7 @@ class ProcessedEvent(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     event_key: Mapped[str] = mapped_column(String(64))
-    schema_version: Mapped[str] = mapped_column(String(16))
+    schema_version: Mapped[str] = mapped_column(String(32))
     job_id: Mapped[UUID] = mapped_column(
         ForeignKey("ingestion_jobs.id", ondelete="RESTRICT"), index=True
     )
@@ -249,6 +249,248 @@ class Flow(Base):
     state: Mapped[str | None] = mapped_column(String(32))
     flow_metadata: Mapped[dict[str, Any]] = mapped_column("metadata", JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class RuleVersion(Base):
+    __tablename__ = "rule_versions"
+    __table_args__ = (
+        UniqueConstraint("rule_key", "version", name="uq_rule_versions_key_version"),
+        UniqueConstraint("definition_hash", name="uq_rule_versions_definition_hash"),
+        CheckConstraint(
+            "lifecycle_state IN ('draft','approved','retired')",
+            name="ck_rule_versions_lifecycle",
+        ),
+        CheckConstraint(
+            "severity IN ('informational','low','medium','high','critical')",
+            name="ck_rule_versions_severity",
+        ),
+        CheckConstraint("version > 0", name="ck_rule_versions_version"),
+        CheckConstraint("window_seconds BETWEEN 1 AND 86400", name="ck_rule_versions_window"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    rule_key: Mapped[str] = mapped_column(String(100), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    schema_version: Mapped[str] = mapped_column(String(32), default="behavioral-rule/v1")
+    name: Mapped[str] = mapped_column(String(128))
+    description: Mapped[str] = mapped_column(String(1000))
+    category: Mapped[str] = mapped_column(String(64), index=True)
+    evaluator_key: Mapped[str] = mapped_column(String(64))
+    parameters: Mapped[dict[str, Any]] = mapped_column(JSON)
+    window_seconds: Mapped[int] = mapped_column(Integer)
+    severity: Mapped[str] = mapped_column(String(16))
+    mitre_mappings: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    evidence_contract: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    false_positive_guidance: Mapped[str] = mapped_column(String(1000))
+    investigation_guidance: Mapped[str] = mapped_column(String(1000))
+    prevention_recommendation: Mapped[str] = mapped_column(String(1000))
+    change_rationale: Mapped[str] = mapped_column(String(500))
+    definition_hash: Mapped[str] = mapped_column(String(64))
+    lifecycle_state: Mapped[str] = mapped_column(String(16), default="draft")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class RuleActivation(Base):
+    __tablename__ = "rule_activations"
+    __table_args__ = (
+        CheckConstraint(
+            "action IN ('activate','deactivate','rollback')",
+            name="ck_rule_activations_action",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    rule_key: Mapped[str] = mapped_column(String(100), index=True)
+    rule_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("rule_versions.id", ondelete="RESTRICT"), index=True
+    )
+    previous_rule_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("rule_versions.id", ondelete="RESTRICT")
+    )
+    action: Mapped[str] = mapped_column(String(16))
+    actor_user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reason: Mapped[str] = mapped_column(String(500))
+    regression_evidence: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class SignatureEvent(Base):
+    __tablename__ = "signature_events"
+    __table_args__ = (
+        UniqueConstraint("event_key", "schema_version", name="uq_signature_event_identity"),
+        CheckConstraint("reported_severity BETWEEN 1 AND 255", name="ck_signature_severity"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    event_key: Mapped[str] = mapped_column(String(64))
+    schema_version: Mapped[str] = mapped_column(String(32))
+    job_id: Mapped[UUID] = mapped_column(
+        ForeignKey("ingestion_jobs.id", ondelete="RESTRICT"), index=True
+    )
+    sensor_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("sensors.id", ondelete="RESTRICT"), index=True
+    )
+    source_event_id: Mapped[str | None] = mapped_column(String(128))
+    event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    src_address: Mapped[str] = mapped_column(String(45))
+    dst_address: Mapped[str] = mapped_column(String(45))
+    src_port: Mapped[int | None] = mapped_column(Integer)
+    dst_port: Mapped[int | None] = mapped_column(Integer)
+    protocol: Mapped[str] = mapped_column(String(16))
+    signature_id: Mapped[int] = mapped_column(Integer)
+    signature_revision: Mapped[int] = mapped_column(Integer)
+    signature_name: Mapped[str] = mapped_column(String(256))
+    category: Mapped[str] = mapped_column(String(128))
+    reported_severity: Mapped[int] = mapped_column(Integer)
+    reported_action: Mapped[str | None] = mapped_column(String(32))
+    flow_id: Mapped[str | None] = mapped_column(String(128))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class DetectionRun(Base):
+    __tablename__ = "detection_runs"
+    __table_args__ = (
+        UniqueConstraint("ingestion_job_id", name="uq_detection_runs_ingestion_job"),
+        CheckConstraint(
+            "status IN ('pending','processing','succeeded','failed')",
+            name="ck_detection_runs_status",
+        ),
+        CheckConstraint("signal_count >= 0", name="ck_detection_runs_signals"),
+        CheckConstraint("alert_count >= 0", name="ck_detection_runs_alerts"),
+        CheckConstraint("suppressed_count >= 0", name="ck_detection_runs_suppressed"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    ingestion_job_id: Mapped[UUID] = mapped_column(
+        ForeignKey("ingestion_jobs.id", ondelete="RESTRICT"), index=True
+    )
+    source_job_id: Mapped[UUID] = mapped_column(
+        ForeignKey("ingestion_jobs.id", ondelete="RESTRICT"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    rule_set_hash: Mapped[str | None] = mapped_column(String(64))
+    signal_count: Mapped[int] = mapped_column(Integer, default=0)
+    alert_count: Mapped[int] = mapped_column(Integer, default=0)
+    suppressed_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class DetectionSignal(Base):
+    __tablename__ = "detection_signals"
+    __table_args__ = (
+        UniqueConstraint("semantic_key", name="uq_detection_signals_semantic_key"),
+        CheckConstraint(
+            "source_type IN ('behavioral_rule','suricata_signature')",
+            name="ck_detection_signals_source_type",
+        ),
+        CheckConstraint(
+            "severity IN ('informational','low','medium','high','critical')",
+            name="ck_detection_signals_severity",
+        ),
+        CheckConstraint("observed_value >= 0", name="ck_detection_signals_observed"),
+        CheckConstraint("threshold_value >= 0", name="ck_detection_signals_threshold"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    semantic_key: Mapped[str] = mapped_column(String(64))
+    series_key: Mapped[str] = mapped_column(String(64), index=True)
+    detection_run_id: Mapped[UUID] = mapped_column(
+        ForeignKey("detection_runs.id", ondelete="RESTRICT"), index=True
+    )
+    source_type: Mapped[str] = mapped_column(String(32))
+    rule_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("rule_versions.id", ondelete="RESTRICT"), index=True
+    )
+    signature_event_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("signature_events.id", ondelete="SET NULL"), index=True
+    )
+    category: Mapped[str] = mapped_column(String(128), index=True)
+    severity: Mapped[str] = mapped_column(String(16), index=True)
+    sensor_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("sensors.id", ondelete="RESTRICT"), index=True
+    )
+    bucket_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    bucket_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    grouping: Mapped[dict[str, Any]] = mapped_column(JSON)
+    observed_value: Mapped[int] = mapped_column(BigInteger)
+    threshold_value: Mapped[int] = mapped_column(BigInteger)
+    evidence_event_keys: Mapped[list[str]] = mapped_column(JSON)
+    evidence_hash: Mapped[str] = mapped_column(String(64))
+    data_quality: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class Alert(Base):
+    __tablename__ = "alerts"
+    __table_args__ = (
+        UniqueConstraint("fingerprint", name="uq_alerts_fingerprint"),
+        CheckConstraint(
+            "severity IN ('informational','low','medium','high','critical')",
+            name="ck_alerts_severity",
+        ),
+        CheckConstraint("status = 'new'", name="ck_alerts_sprint3_status"),
+        CheckConstraint("occurrence_count > 0", name="ck_alerts_occurrence_count"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    fingerprint_schema: Mapped[str] = mapped_column(String(32), default="alert-fingerprint/v1")
+    source_type: Mapped[str] = mapped_column(String(32), index=True)
+    category: Mapped[str] = mapped_column(String(128), index=True)
+    severity: Mapped[str] = mapped_column(String(16), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="new", index=True)
+    rule_version_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("rule_versions.id", ondelete="RESTRICT"), index=True
+    )
+    sensor_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("sensors.id", ondelete="RESTRICT"), index=True
+    )
+    grouping: Mapped[dict[str, Any]] = mapped_column(JSON)
+    occurrence_count: Mapped[int] = mapped_column(Integer, default=1)
+    evidence_overflow_count: Mapped[int] = mapped_column(Integer, default=0)
+    evidence_overflow_hash: Mapped[str | None] = mapped_column(String(64))
+    first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class AlertEvidence(Base):
+    __tablename__ = "alert_evidence"
+    __table_args__ = (UniqueConstraint("alert_id", "signal_id", name="uq_alert_evidence_signal"),)
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    alert_id: Mapped[UUID] = mapped_column(ForeignKey("alerts.id", ondelete="RESTRICT"), index=True)
+    signal_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("detection_signals.id", ondelete="SET NULL"), index=True
+    )
+    evidence_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON)
+    evidence_hash: Mapped[str] = mapped_column(String(64))
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
 
 
 class AuditEvent(Base):

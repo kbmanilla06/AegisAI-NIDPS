@@ -17,4 +17,4 @@ RUN python -m pip install --upgrade pip && python -m pip install .
 
 USER aegis
 
-CMD ["celery", "--app", "aegis_worker.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "--queues=ingestion,celery"]
+CMD ["celery", "--app", "aegis_worker.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "--queues=ingestion,detection,celery"]

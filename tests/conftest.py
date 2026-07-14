@@ -12,10 +12,11 @@ from aegis_api.database import get_db
 from aegis_api.ingestion_dispatch import get_ingestion_dispatcher
 from aegis_api.ingestion_throttle import get_ingestion_throttle
 from aegis_api.main import create_app
-from aegis_api.models import Base, Permission, Role, User
+from aegis_api.models import Base, Permission, Role, RuleVersion, User
 from aegis_api.security.passwords import password_service
 from aegis_api.security.permissions import ROLE_PERMISSION_MATRIX
 from aegis_api.security.throttle import LoginThrottle, get_login_throttle
+from aegis_services.detection import DEFAULT_RULES, canonical_hash
 
 ORIGIN = "http://localhost:5173"
 PASSWORD = "correct-horse-battery-staple"  # noqa: S105  # nosec B105 - test fixture
@@ -87,6 +88,30 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
                         roles=[role],
                     )
                 )
+            for definition in DEFAULT_RULES:
+                db.add(
+                    RuleVersion(
+                        rule_key=definition.rule_key,
+                        version=1,
+                        schema_version="behavioral-rule/v1",
+                        name=definition.name,
+                        description=definition.description,
+                        category=definition.category,
+                        evaluator_key=definition.evaluator_key,
+                        parameters=definition.parameters,
+                        window_seconds=definition.window_seconds,
+                        severity=definition.severity,
+                        mitre_mappings=[],
+                        evidence_contract={"version": "alert-evidence/v1"},
+                        false_positive_guidance=definition.false_positive_guidance,
+                        investigation_guidance=definition.investigation_guidance,
+                        prevention_recommendation=definition.prevention_recommendation,
+                        change_rationale="Approved Sprint 3 test seed.",
+                        definition_hash=canonical_hash(definition.canonical_definition()),
+                        lifecycle_state="approved",
+                        is_active=True,
+                    )
+                )
             await db.commit()
 
     asyncio.run(prepare())
@@ -102,6 +127,7 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
         ingestion_max_processing_seconds=10,
     )
     app = create_app(test_settings)
+    app.state.session_factory = session_factory
 
     async def override_db() -> AsyncIterator[AsyncSession]:
         async with session_factory() as db:

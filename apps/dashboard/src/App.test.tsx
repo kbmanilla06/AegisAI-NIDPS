@@ -5,8 +5,25 @@ import { App } from "./App";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   localStorage.clear();
 });
+
+class TestWebSocket {
+  onopen: (() => void) | null = null;
+  onmessage: ((event: { data: string }) => void) | null = null;
+  onerror: (() => void) | null = null;
+  onclose: (() => void) | null = null;
+
+  constructor(url: string) {
+    void url;
+    queueMicrotask(() => this.onopen?.());
+  }
+
+  close() {
+    this.onclose?.();
+  }
+}
 
 test("shows the simulation-only health state", async () => {
   vi.spyOn(globalThis, "fetch")
@@ -69,4 +86,33 @@ test("submits controlled telemetry as multipart without trusting a browser MIME"
   const request = fetchMock.mock.calls[4]?.[1];
   expect(request?.body).toBeInstanceOf(FormData);
   expect(new Headers(request?.headers).has("Content-Type")).toBe(false);
+});
+
+test("shows versioned deterministic rules and alerts with bounded live status", async () => {
+  vi.stubGlobal("WebSocket", TestWebSocket);
+  const auth = {
+    user: { id: "u1", email: "viewer@example.com", roles: ["Viewer"], is_active: true, version: 1 },
+    permissions: ["rules:read", "alerts:read"],
+  };
+  vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response(JSON.stringify({ status: "ok", prevention_mode: "simulation" }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(auth), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ csrf_token: "csrf-memory-only" }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify([{
+      id: "rule-1", rule_key: "behavior.port_scan", version: 1, name: "Port scan indicator",
+      description: "Deterministic scan condition", category: "reconnaissance", evaluator_key: "port_scan_v1",
+      parameters: { threshold: 20 }, window_seconds: 60, severity: "medium",
+      false_positive_guidance: "Authorized scanners", investigation_guidance: "Confirm authorization",
+      prevention_recommendation: "Review only", lifecycle_state: "approved", is_active: true,
+    }]), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify([{
+      id: "alert-1", source_type: "behavioral_rule", category: "reconnaissance", severity: "medium",
+      status: "new", grouping: {}, occurrence_count: 2, first_seen: "2026-07-14T00:00:00Z",
+      last_seen: "2026-07-14T00:01:00Z",
+    }]), { status: 200 }));
+  render(<App />);
+  expect(await screen.findByText(/Port scan indicator/)).toBeInTheDocument();
+  expect(await screen.findByText(/reconnaissance · behavioral_rule · occurrences 2/)).toBeInTheDocument();
+  expect(await screen.findByText("Live updates: connected")).toBeInTheDocument();
+  expect(screen.getByText(/Rules never invoke prevention/)).toBeInTheDocument();
 });

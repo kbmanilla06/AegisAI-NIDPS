@@ -6,5 +6,6 @@ network context. Oversized inputs and PCAP bytes are generated in temporary test
 large files and PCAP artifacts are never committed.
 
 Coverage includes valid canonical flow JSONL, duplicate identity, out-of-order timestamps,
-malformed/truncated JSON, Unicode rejection, Zeek connection-style TSV, Suricata EVE flow records, and an
-unsupported Suricata alert that must remain deferred to Sprint 3.
+malformed/truncated JSON, Unicode rejection, Zeek connection-style TSV, and Suricata EVE flow records.
+Sprint 3 signature and deterministic-rule fixtures live under `tests/fixtures/detection`; they contain
+only documentation IP ranges and no payloads.

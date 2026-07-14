@@ -1,6 +1,6 @@
 # REST and WebSocket API Specification
 
-**Status:** Sprint 1 identity/inventory and Sprint 2 ingestion/flow routes implemented; later routes remain approved design
+**Status:** Sprint 1 identity/inventory, Sprint 2 ingestion/flow, and Sprint 3 rule/detection/alert routes implemented; later workflow routes remain approved design
 **Base:** `/api/v1`
 **Common:** authenticated unless public health; JSON; correlation ID; stable error `{code,message,correlation_id,details?}`; pagination on collections.
 
@@ -43,17 +43,26 @@ Job states are `pending`, `processing`, `succeeded`, `failed`, or `rejected`. Re
 
 | Method/path | Purpose | Roles | Controls |
 |---|---|---|---|
-| GET `/rules` | List versions/status | Analyst/Admin | Pagination |
-| POST `/rules` | Create version | Security Admin | Definition schema; review status; audit |
-| POST `/rules/{id}/activate` | Activate approved version | Security Admin | Regression evidence reference; audit |
-| GET `/alerts` | Filter alerts | Analyst/Viewer scoped | Pagination/time bounds; field RBAC |
-| GET `/alerts/{id}` | Evidence and history | Analyst/Viewer scoped | Redact restricted raw data |
+| GET `/rules` | List active/all rule versions | `rules:read` | `active_only`; immutable definition hash and lifecycle metadata |
+| GET `/rules/{rule_key}/versions` | List one rule's history | `rules:read` | newest version first |
+| POST `/rules/{rule_key}/versions` | Create draft version | `rules:write` | CSRF+Origin; closed evaluator registry; strict parameters; complete definition SHA-256; audit |
+| POST `/rule-versions/{id}/review` | Approve/reject draft | `rules:review` | reason and regression-evidence reference; audit |
+| POST `/rule-versions/{id}/activate` | Activate approved version | `rules:activate` | expected active version; transactional replacement; audit |
+| POST `/rules/{rule_key}/deactivate` | Deactivate a rule | `rules:activate` | expected active version; reason; audit |
+| POST `/rules/{rule_key}/rollback` | Restore approved version | `rules:activate` | target and expected active versions; audit |
+| GET `/detection/metrics` | Aggregate run/signal/alert counts | `detections:read_metrics` | bounded aggregate; no sensitive labels |
+| GET `/detection/runs` | List run status | `detections:read_metrics` | limit 1–100; optional `source_job_id` |
+| GET `/detection/runs/{id}` | Inspect one run | `detections:read_metrics` | safe status/error only |
+| GET `/alerts` | List new alerts | `alerts:read` | limit 1–100; endpoint fields redacted without sensitive permission |
+| GET `/alerts/{id}` | Alert plus bounded evidence | `alerts:read` | `alerts:read_sensitive` controls endpoint evidence; no internal exception/path |
 | PATCH `/alerts/{id}/status` | Valid transition | Analyst | Expected version; state validation; audit |
 | POST `/alerts/{id}/notes` | Add note | Analyst | Length/content validation; audit |
 | GET/POST `/incidents` | List/create case | Analyst | Alert access validation; audit create |
 | GET/PATCH `/incidents/{id}` | Review/update valid fields | Analyst | State/concurrency checks; audit |
 | POST `/incidents/{id}/alerts` | Add alert | Analyst | Prevent duplicate/orphan; audit |
 | POST `/incidents/{id}/timeline` | Append event/note | Analyst | Append-only semantics; audit |
+
+The PATCH/note/incident routes in the final rows are deferred to Sprint 8 and do not exist in Sprint 3. Sprint 3 alerts remain status `new`; there is no assignment, disposition, incident, model, risk, confidence, or prevention action.
 
 ## Intelligence and ML
 
@@ -92,7 +101,7 @@ No approval or real-execution route exists in the Sprints 0–9 API.
 
 ## WebSocket
 
-`/ws/v1/alerts` authenticates before upgrade, authorizes subscription scope, sends minimal alert summaries plus event IDs, bounds per-client queues, uses heartbeat/reconnect semantics, and closes slow clients. Detailed evidence is fetched through REST with current authorization.
+`/ws/v1/alerts` requires an exact allowed Origin, an unexpired opaque cookie session, and `alerts:read` before upgrade, then rechecks session expiry/revocation, user state, and permission at most every 15 seconds. It sends only `connected`, heartbeat, and minimal `{event,alert_id,sequence}` notifications. Each client has a 100-message queue; a slow client is closed with retry-later semantics. Detailed evidence is fetched through REST under current authorization, and 30-second UI polling is the fallback.
 
 ## Error and rate-limit policy
 

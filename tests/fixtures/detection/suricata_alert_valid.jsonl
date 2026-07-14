@@ -1,0 +1,1 @@
+{"timestamp":"2026-07-14T00:00:02.000000+00:00","flow_id":9002,"event_type":"alert","src_ip":"192.0.2.41","src_port":50123,"dest_ip":"198.51.100.41","dest_port":443,"proto":"TCP","alert":{"action":"allowed","signature_id":2100001,"rev":2,"signature":"Synthetic TLS policy indicator","category":"Policy indicator","severity":2}}

@@ -5,12 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from aegis_api.body_limits import IngestionBodyLimitMiddleware
 from aegis_api.config import Settings, get_settings
-from aegis_api.database import engine
+from aegis_api.database import SessionFactory, engine
 from aegis_api.dependencies import postgres_check, redis_check
 from aegis_api.errors import install_error_handlers
 from aegis_api.health import HealthChecks, create_health_router
 from aegis_api.middleware import install_correlation_middleware
-from aegis_api.routers import assets, audit, auth, ingestion, sensors, users
+from aegis_api.routers import assets, audit, auth, detection, ingestion, sensors, users
 
 
 @asynccontextmanager
@@ -23,10 +23,12 @@ def create_app(settings_override: Settings | None = None) -> FastAPI:
     settings = settings_override or get_settings()
     app = FastAPI(
         title="AegisAI NIDPS API",
-        version="0.3.0",
-        description="Sprint 2 controlled telemetry ingestion. Prevention is simulation-only.",
+        version="0.4.0",
+        description="Sprint 3 deterministic detection. Prevention is simulation-only.",
         lifespan=lifespan,
     )
+    app.state.settings = settings
+    app.state.session_factory = SessionFactory
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
@@ -48,6 +50,8 @@ def create_app(settings_override: Settings | None = None) -> FastAPI:
     app.include_router(sensors.router)
     app.include_router(audit.router)
     app.include_router(ingestion.router)
+    app.include_router(detection.router)
+    app.include_router(detection.ws_router)
     return app
 
 

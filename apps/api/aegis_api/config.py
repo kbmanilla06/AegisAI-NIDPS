@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     ingestion_upload_limit: int = Field(default=5, ge=1, le=100)
     ingestion_upload_window_seconds: int = Field(default=60, ge=10, le=3600)
     ingestion_pending_delay_seconds: int = Field(default=60, ge=10, le=3600)
+    detection_max_groups: int = Field(default=5_000, ge=1, le=20_000)
+    detection_max_alerts: int = Field(default=1_000, ge=1, le=10_000)
+    detection_max_signals: int = Field(default=10_000, ge=1, le=100_000)
+    detection_max_evidence_per_alert: int = Field(default=100, ge=1, le=1_000)
+    detection_max_active_rules: int = Field(default=50, ge=1, le=200)
+    detection_soft_limit_seconds: int = Field(default=60, ge=5, le=300)
+    detection_hard_limit_seconds: int = Field(default=75, ge=10, le=330)
+    detection_pending_delay_seconds: int = Field(default=60, ge=10, le=3600)
+    live_alert_queue_size: int = Field(default=100, ge=1, le=1_000)
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

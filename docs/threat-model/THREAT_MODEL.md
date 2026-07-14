@@ -2,7 +2,7 @@
 
 **Scope:** Sprints 0–9 design; simulation-only prevention
 **Method:** STRIDE plus abuse-case review
-**Status:** Sprint 2 review applied for the hostile upload, sensor, worker, artifact, and retention boundaries
+**Status:** Sprint 3 review applied for rule lifecycle, deterministic detection, alert evidence, live notification, and retention boundaries
 
 ## Assets
 
@@ -30,7 +30,7 @@ Severity combines plausible impact and likelihood for the proposed local MVP. Cr
 | TM-08 | T | Dataset/label poisoning | Misleading model and claims | Medium | High | Official source, checksum, manifest, access/review, quality analysis | Provenance and distribution checks | Medium |
 | TM-09 | T | Train-test leakage/feature manipulation | Inflated metrics, poor detection | High | High | Source/time-aware splits, banned fields, parity/leakage tests | Split audit and feature review | Low |
 | TM-10 | T/E | Artifact replacement or unsafe deserialization | Code execution/wrong model | Medium | Critical | Controlled format policy, checksum/signature, registry RBAC, compatibility checks | Corrupt/replaced artifact tests | Low |
-| TM-11 | T/E | Rule/threshold/model activation tampering | Blind spots or alert flood | Medium | High | Versioning, approvals, audit, regression tests, rollback | Unauthorized/change regression tests | Low |
+| TM-11 | T/E | Rule/threshold/model activation tampering | Blind spots or alert flood | Medium | High | Immutable complete definition hash/DB trigger, separate review/activation permission, expected-active locking, audit, regression evidence, rollback | Six-role denial, mutation, lifecycle, concurrent expectation, rollback tests | Low for deterministic rules; model path deferred |
 | TM-12 | I | External TI query leaks internal indicators | Privacy/intelligence exposure | Medium | Medium | Optional lookup, minimization, allowlisted providers, cache | Network/request review | Low |
 | TM-13 | T | Stale/conflicting intelligence treated as proof | False positives/unsafe action | High | High | Expiry, confidence, provenance, conflict display, no sole authority | Expired/conflict tests | Low |
 | TM-14 | R/T | Audit omission or tampering | Lost accountability | Medium | High | Append-oriented records, restricted mutation, fail-closed sensitive writes, backup | Mutation/omission and restore tests | Medium |
@@ -46,6 +46,8 @@ Severity combines plausible impact and likelihood for the proposed local MVP. Cr
 | TM-24 | T | Unsafe default enables enforcement | Network outage | Low in design | Critical | No real adapter/capability S0–9, simulation constant, configuration test | OS firewall diff and config tests | Low |
 | TM-25 | S/T | CSRF or session fixation causes unauthorized state change | Sensitive configuration/data change | Medium | High | Secure opaque cookie, session rotation, CSRF token, Origin checks, exact CORS | CSRF, fixation, cookie, cross-origin tests | Low |
 | TM-26 | T/E | Malicious Celery serialization/task envelope | Worker code execution or resource abuse | Medium | Critical | JSON-only serializer, task allowlist, bounded IDs, no pickle, broker isolation | Serializer/config and malformed-task tests | Low |
+| TM-27 | I/D | Sensitive or unbounded live alert notification | Endpoint leakage or client/broker exhaustion | Medium | High | Exact Origin/session/RBAC before upgrade and every 15 seconds, ID-only payload, 100-message client queue, revoked/expired/slow-client close, REST authorization/polling | WebSocket denial/revocation/contract tests and real Redis task check | Medium; representative fan-out load deferred |
+| TM-28 | T/R | Duplicate, late, or reordered evidence rewrites alert history | False counts or lost provenance | High | High | Fixed UTC buckets, stable series/semantic/fingerprint hashes, DB uniqueness, append evidence, immutable snapshots | exact-rerun, out-of-order, late-evidence, cleanup tests | Low |
 
 ## Prioritized security backlog
 

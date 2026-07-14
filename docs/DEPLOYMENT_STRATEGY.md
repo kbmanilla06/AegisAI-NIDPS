@@ -1,12 +1,12 @@
 # Local Development and Deployment Strategy
 
-**Status:** Sprint 2 local ingestion foundation implemented and verified; publication pending
+**Status:** Sprint 2 published at `29c2891f`; Sprint 3 deterministic detection is locally complete and uncommitted pending review
 
 ## MVP topology
 
 Docker Compose runs a React/Vite dashboard, FastAPI API, Celery worker, Celery Beat scheduler, PostgreSQL, and Redis. PostgreSQL and Redis are isolated on the internal data network; the API and dashboard bind only to localhost. Uploaded files use a controlled named volume outside Git under opaque generated references; PostgreSQL stores the reference, SHA-256, detected media type, byte size, and expiry. Raw data is removed after successful processing or by 24 hours, and normalized flows are removed after 30 days. No model loader exists.
 
-Celery accepts JSON-serialized task envelopes containing only a bounded job UUID; pickle serialization and untrusted object deserialization are disabled. The ingestion queue uses late acknowledgements, one-message prefetch, a 120-second soft limit, a 135-second hard limit, and two bounded retries. Beat schedules hourly raw cleanup and daily flow/ledger cleanup. Redis is a broker/coordination dependency, not authoritative state.
+Celery accepts JSON-serialized task envelopes containing only a bounded job/run UUID; pickle serialization and untrusted object deserialization are disabled. Ingestion uses 120/135-second soft/hard limits; deterministic detection uses 60/75 seconds. Both use late acknowledgment, one-message prefetch, and two bounded retries. Beat schedules raw, flow, detection-run, signal, alert, and orphan-run cleanup/reconciliation. Redis carries work and minimal live notifications but is never authoritative state.
 
 ## Environment separation
 
@@ -42,6 +42,8 @@ Structured JSON logs with correlation IDs, safe error codes, health/live and hea
 Sprint 1 was verified in an isolated Compose project with a fresh PostgreSQL volume. Migration `0001_sprint1_identity` upgraded, downgraded to base, and upgraded again successfully. PostgreSQL, Redis, API, worker, and dashboard reached healthy/running state; liveness reported simulation mode and readiness reported PostgreSQL/Redis healthy. The interactive bootstrap CLI created the first System Administrator without accepting a password through command arguments or environment variables, and a real API login persisted one hashed server-side session and safe audit records.
 
 Sprint 2 was verified in isolated Compose projects with fresh PostgreSQL and artifact volumes. Migration `0002_sprint2_ingestion` upgraded, downgraded to `0001_sprint1_identity`, and re-upgraded. The six-service stack started; API readiness reported PostgreSQL/Redis `ok`; dashboard returned HTTP 200; Celery ping passed. A normalized upload accepted two out-of-order records, deleted its raw object, and an authorized replay completed as two duplicates. Repeated worker tasks succeeded after explicit per-task async-engine disposal. No live capture or network enforcement capability was present.
+
+Sprint 3 was verified in disposable Compose project `aegisai-sprint3verify`. Migration `0003_sprint3_detection` upgraded from Sprint 2, downgraded, and re-upgraded. Its PostgreSQL trigger permitted activation-only changes and rejected definition mutation with the intended error. PostgreSQL/Redis/API/worker/scheduler/dashboard reached healthy state; Celery ping and registered-task inspection passed. An authenticated synthetic Suricata alert traversed the real upload and both Celery stages, produced one persisted alert, and deleted the raw object immediately. No dataset, model, live capture, privileged/host-network container, firewall capability, or enforcement dependency was introduced.
 
 ## Deferred decisions
 

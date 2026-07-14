@@ -23,6 +23,8 @@
 | C-17 | The owner approved the recommended defaults and authorized the Sprint 0 foundation on 2026-07-14. |
 | C-18 | Hosted Sprint 0 CI Run #1 passed for commit `44dbc59`; the owner authorized Sprint 1 on 2026-07-14. |
 | C-19 | Sprint 1 was published as `61ef2cc9e79dbd987debc226e4349bd3cb8571a5`; hosted CI Run #2 (`29312141925`) passed before Sprint 2 began. |
+| C-20 | Sprint 2 was published as `29c2891f1e6bfe6686d4ef6c2489932d2f0a2fcd`; hosted CI Run #4 passed before Sprint 3 planning. |
+| C-21 | The owner approved every recommended Sprint 3 default and authorized only the exact Section 31 implementation scope on 2026-07-14. |
 
 ## Safe working assumptions
 
@@ -51,6 +53,11 @@
 | D-12 | Sprint 2 ingestion contract | Canonical flow schema v1; normalized JSONL first, strict Zeek connection logs, Suricata EVE flow events, and offline PCAP/PCAPNG only. No archive input and no live capture. |
 | D-14 | Sprint 2 bounded defaults | 8 MiB upload, 10,000 records, 5,000 unique PCAP flows, 120-second worker soft limit, five submissions per identity per 60 seconds, 60-second delayed-job threshold. |
 | D-15 | Ingestion idempotency | SHA-256 canonical event identity plus sensor scope; unique ledger/flow constraints; replay uses an actor-scoped idempotency key and reuses normalized records rather than retained raw content. |
+| D-16 | Sprint 3 active rules | Activate only deterministic port-scan (20 unique ports/60 seconds), recognized Zeek connection failures (10/300 seconds), and high connection rate (100 distinct flows/60 seconds). Ambiguous DNS, beaconing, brute-force, and outbound-volume claims remain deferred. |
+| D-17 | Rule lifecycle | Immutable version rows; closed evaluator registry; draft/review/activation separation; expected-active concurrency; audited deactivate/rollback; SHA-256 covers every definition field. |
+| D-18 | Alert identity and evidence | `alert-fingerprint/v1`; exact reruns are no-ops, material late evidence creates a new signal in the same alert series, 100 evidence rows per alert with overflow count, evidence snapshots survive flow cleanup. |
+| D-19 | Sprint 3 bounded execution | 50 active rules, 5,000 groups, 10,000 signals, 1,000 alert mutations/run, 60/75-second Celery limits, two retries, 100 queued live notifications/client. |
+| D-20 | Sprint 3 semantics | No risk/confidence score, incident workflow, model/intelligence dependency, automatic disposition, or prevention action. Viewer endpoints are redacted; persisted REST state is authoritative over live notifications. |
 ## Owner decisions deferred beyond scaffolding
 
 | ID | Decision | Why it blocks |

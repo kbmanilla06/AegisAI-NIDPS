@@ -1,6 +1,6 @@
 # Canonical Contract Schemas
 
-**Status:** Canonical telemetry flow v1 implemented; later contracts remain conceptual
+**Status:** Canonical flow v1 and Sprint 3 signature/rule/signal/alert contracts implemented; later ML, assessment, incident, and prevention contracts remain conceptual
 
 ## Common envelope
 
@@ -30,7 +30,7 @@ Payload bytes, filenames, MIME declarations, labels, detection results, and inte
 
 - Normalized JSONL maps field-for-field and forbids extras.
 - Zeek TSV uses declared `#fields`/`#types`; Zeek JSON uses strict connection fields. `ts`, `id.orig_h/p`, `id.resp_h/p`, `proto`, `duration`, `orig_pkts`/`resp_pkts`, `orig_bytes`/`resp_bytes`, `conn_state`, and optional `uid` map to the canonical fields.
-- Suricata EVE accepts only `event_type=flow`; it maps `timestamp`, endpoint IP/ports, `proto`, `flow.age`, packet/byte counters, `flow.state`, and optional `flow_id`. Other EVE event shapes are rejected, not coerced into flows.
+- Suricata EVE handles event shapes explicitly. `event_type=flow` maps to canonical flow v1. `event_type=alert` maps to canonical signature event v1. Other event types are controlled rejections and are never coerced into a uniform record.
 - PCAP/PCAPNG is parsed offline and aggregated by directional packet tuple into bounded flow metadata. Packet payload content is never persisted.
 
 ## Feature vector v1
@@ -39,9 +39,17 @@ Required: flow/window identity, event cutoff time, ordered feature schema versio
 
 Candidate feature groups: duration, protocol/ports, forward/backward packet/byte counts, packet-size/inter-arrival statistics, TCP state/flags, rates, direction ratios, connection failure/frequency/burst windows, and privacy-limited DNS/HTTP/TLS metadata.
 
+## Canonical signature event v1
+
+`CanonicalSignatureEventV1` is immutable and rejects extras. It requires schema `signature-event/v1`, source `suricata`, timezone-aware UTC event time, canonical IP addresses, paired optional ports, bounded lowercase protocol, signature ID, revision, 1–255 category, and severity 1–255. Optional sensor and source-event IDs are bounded. Payload bytes, arbitrary EVE metadata, filenames, paths, and exception text are prohibited. The stable event key hashes the sorted normalized contract.
+
+## Behavioral rule v1
+
+An immutable rule definition contains rule key, versioned schema/evaluator, strict evaluator parameters, fixed window, severity, optional MITRE mappings, evidence contract, false-positive/investigation guidance, prevention recommendation, and change rationale. SHA-256 covers every immutable definition field. Activation and review metadata are deliberately outside that hash.
+
 ## Detection signal v1
 
-Fields: signal ID, source type (`signature`, `behavioral_rule`, `supervised_ml`, `anomaly`, `intelligence`), category, score, confidence, severity suggestion, evidence references, event/window time, detector/rule/model/threshold version, uncertainty, and human-readable rationale.
+Sprint 3 fields are signal ID, source (`signature` or `behavioral_rule`), category, severity, immutable rule/signature reference, fixed window, normalized grouping, observed/threshold values where applicable, bounded evidence snapshot/hash, stable series key, stable semantic key, and run provenance. Risk, score, confidence, probability, uncertainty, model, and intelligence fields are intentionally absent until later versioned contracts.
 
 ## Decision assessment v1
 
@@ -49,7 +57,7 @@ Fields: assessment version, contributing signal IDs, asset context version, risk
 
 ## Alert v1
 
-Fields: alert ID/fingerprint, first/last seen, endpoints/protocol, risk/confidence/severity/category, status, assignee, MITRE mappings with provenance, evidence IDs, rule/model/feature/assessment versions, intelligence matches, prevention recommendation/status, notes/history links.
+Sprint 3 fields are alert ID, `alert-fingerprint/v1`, source, category, severity, status=`new`, normalized grouping, optional rule/sensor reference, occurrence and evidence-overflow counts, first/last seen, and bounded evidence snapshots. Sensitive endpoint fields are presenter-redacted by permission. Risk/confidence, assignment, dispositions, incidents, intelligence, models, and prevention lifecycle are deferred.
 
 ## Incident v1
 

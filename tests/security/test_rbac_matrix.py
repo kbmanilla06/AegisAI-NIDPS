@@ -10,6 +10,10 @@ READ_MATRIX = {
         "/api/v1/roles": 403,
         "/api/v1/audit/events": 403,
         "/api/v1/ingestion/jobs": 403,
+        "/api/v1/rules": 200,
+        "/api/v1/alerts": 200,
+        "/api/v1/detection/metrics": 403,
+        "/api/v1/detection/runs": 403,
     },
     "SOC Analyst": {
         "/api/v1/assets": 200,
@@ -18,6 +22,10 @@ READ_MATRIX = {
         "/api/v1/roles": 403,
         "/api/v1/audit/events": 403,
         "/api/v1/ingestion/jobs": 200,
+        "/api/v1/rules": 200,
+        "/api/v1/alerts": 200,
+        "/api/v1/detection/metrics": 200,
+        "/api/v1/detection/runs": 200,
     },
     "Senior Analyst": {
         "/api/v1/assets": 200,
@@ -26,6 +34,10 @@ READ_MATRIX = {
         "/api/v1/roles": 403,
         "/api/v1/audit/events": 403,
         "/api/v1/ingestion/jobs": 200,
+        "/api/v1/rules": 200,
+        "/api/v1/alerts": 200,
+        "/api/v1/detection/metrics": 200,
+        "/api/v1/detection/runs": 200,
     },
     "Security Administrator": {
         "/api/v1/assets": 200,
@@ -34,6 +46,10 @@ READ_MATRIX = {
         "/api/v1/roles": 200,
         "/api/v1/audit/events": 200,
         "/api/v1/ingestion/jobs": 200,
+        "/api/v1/rules": 200,
+        "/api/v1/alerts": 200,
+        "/api/v1/detection/metrics": 200,
+        "/api/v1/detection/runs": 200,
     },
     "System Administrator": {
         "/api/v1/assets": 200,
@@ -42,6 +58,10 @@ READ_MATRIX = {
         "/api/v1/roles": 200,
         "/api/v1/audit/events": 200,
         "/api/v1/ingestion/jobs": 200,
+        "/api/v1/rules": 200,
+        "/api/v1/alerts": 200,
+        "/api/v1/detection/metrics": 200,
+        "/api/v1/detection/runs": 200,
     },
     "Auditor": {
         "/api/v1/assets": 200,
@@ -50,6 +70,10 @@ READ_MATRIX = {
         "/api/v1/roles": 200,
         "/api/v1/audit/events": 200,
         "/api/v1/ingestion/jobs": 200,
+        "/api/v1/rules": 200,
+        "/api/v1/alerts": 200,
+        "/api/v1/detection/metrics": 200,
+        "/api/v1/detection/runs": 200,
     },
 }
 
@@ -104,9 +128,28 @@ def test_every_role_against_protected_create_routes(app_harness: AppHarness, rol
             )
         },
     )
+    rule = app_harness.client.post(
+        "/api/v1/rules/behavior.rbac_test/versions",
+        headers=headers,
+        json={
+            "name": "RBAC test rule",
+            "description": "Synthetic rule used only to verify server-side authorization.",
+            "category": "test",
+            "evaluator_key": "port_scan_v1",
+            "parameters": {"threshold": 30, "excluded_asset_ids": []},
+            "window_seconds": 60,
+            "severity": "low",
+            "mitre_mappings": [],
+            "false_positive_guidance": "Synthetic test only.",
+            "investigation_guidance": "No investigation required.",
+            "prevention_recommendation": "No action.",
+            "change_rationale": "Verify the complete role denial matrix.",
+        },
+    )
     inventory_status = 201 if role in {"Security Administrator", "System Administrator"} else 403
     assert asset.status_code == inventory_status, (role, "assets")
     assert sensor.status_code == inventory_status, (role, "sensors")
     assert user.status_code == (201 if role == "System Administrator" else 403), (role, "users")
     ingestion_status = 202 if role in {"Security Administrator", "System Administrator"} else 403
     assert ingestion.status_code == ingestion_status, (role, "ingestion")
+    assert rule.status_code == inventory_status, (role, "rule version")

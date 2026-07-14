@@ -109,7 +109,11 @@ services:
       AEGIS_ARTIFACT_ROOT: /var/lib/aegis/artifacts
     networks: [data]
     volumes:
-      - artifacts:/var/lib/aegis/artifacts
+      - type: volume
+        source: artifacts
+        target: /var/lib/aegis/artifacts
+        volume:
+          nocopy: true
     tmpfs:
       - /tmp:size=64m,mode=1777
     mem_limit: 384m
@@ -117,7 +121,7 @@ services:
     pids_limit: 128
     read_only: true
     depends_on:
-      migrate: {condition: service_completed_successfully}
+      api: {condition: service_healthy}
       redis: {condition: service_healthy}
     restart: unless-stopped
     <<: *common-security
@@ -136,7 +140,11 @@ services:
       AEGIS_ARTIFACT_ROOT: /var/lib/aegis/artifacts
     networks: [data]
     volumes:
-      - artifacts:/var/lib/aegis/artifacts
+      - type: volume
+        source: artifacts
+        target: /var/lib/aegis/artifacts
+        volume:
+          nocopy: true
     tmpfs:
       - /tmp:size=16m,mode=1777
     read_only: true

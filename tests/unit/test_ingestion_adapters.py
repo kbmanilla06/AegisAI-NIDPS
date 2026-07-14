@@ -55,7 +55,7 @@ def test_zeek_conn_log_maps_strict_fields() -> None:
     assert parsed("zeek_malformed.tsv", "zeek")[0].error_code == "invalid_record"
 
 
-def test_suricata_flow_maps_and_alert_is_deferred() -> None:
+def test_suricata_flow_maps_strict_fields() -> None:
     result = parsed("suricata_valid.jsonl", "suricata")
     flow = result[0].flow
     assert flow is not None

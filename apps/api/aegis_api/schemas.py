@@ -221,3 +221,123 @@ class IngestionMetricsOut(BaseModel):
     duplicate_records: int
     delayed_jobs: int
     failed_jobs: int
+
+
+class Severity(StrEnum):
+    INFORMATIONAL = "informational"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class RuleVersionCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
+    description: str = Field(min_length=1, max_length=1000)
+    category: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_.-]+$")
+    evaluator_key: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_.-]+$")
+    parameters: dict[str, object]
+    window_seconds: int = Field(ge=1, le=86_400)
+    severity: Severity
+    mitre_mappings: list[dict[str, object]] = Field(default_factory=list, max_length=10)
+    false_positive_guidance: str = Field(min_length=1, max_length=1000)
+    investigation_guidance: str = Field(min_length=1, max_length=1000)
+    prevention_recommendation: str = Field(min_length=1, max_length=1000)
+    change_rationale: str = Field(min_length=8, max_length=500)
+
+
+class RuleReviewRequest(BaseModel):
+    approved: bool
+    reason: str = Field(min_length=8, max_length=500)
+    regression_evidence: str = Field(min_length=3, max_length=255)
+
+
+class RuleActivationRequest(BaseModel):
+    reason: str = Field(min_length=8, max_length=500)
+    regression_evidence: str = Field(min_length=3, max_length=255)
+    expected_active_version_id: UUID | None = None
+
+
+class RuleRollbackRequest(RuleActivationRequest):
+    target_version_id: UUID
+
+
+class RuleVersionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    rule_key: str
+    version: int
+    schema_version: str
+    name: str
+    description: str
+    category: str
+    evaluator_key: str
+    parameters: dict[str, object]
+    window_seconds: int
+    severity: str
+    mitre_mappings: list[dict[str, object]]
+    false_positive_guidance: str
+    investigation_guidance: str
+    prevention_recommendation: str
+    change_rationale: str
+    definition_hash: str
+    lifecycle_state: str
+    is_active: bool
+    created_by: UUID | None
+    reviewed_by: UUID | None
+    reviewed_at: datetime | None
+    created_at: datetime
+
+
+class AlertSummaryOut(BaseModel):
+    id: UUID
+    source_type: str
+    category: str
+    severity: str
+    status: str
+    grouping: dict[str, object]
+    occurrence_count: int
+    evidence_overflow_count: int
+    first_seen: datetime
+    last_seen: datetime
+    created_at: datetime
+    rule_version_id: UUID | None
+
+
+class AlertEvidenceOut(BaseModel):
+    id: UUID
+    evidence_snapshot: dict[str, object]
+    evidence_hash: str
+    occurred_at: datetime
+
+
+class AlertDetailOut(AlertSummaryOut):
+    fingerprint: str
+    fingerprint_schema: str
+    evidence: list[AlertEvidenceOut]
+
+
+class DetectionRunOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    ingestion_job_id: UUID
+    source_job_id: UUID
+    status: str
+    rule_set_hash: str | None
+    signal_count: int
+    alert_count: int
+    suppressed_count: int
+    error_code: str | None
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+
+
+class DetectionMetricsOut(BaseModel):
+    runs_by_status: dict[str, int]
+    signals: int
+    alerts: int
+    occurrences: int
+    suppressed: int

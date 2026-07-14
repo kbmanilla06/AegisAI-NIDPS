@@ -1,20 +1,21 @@
 # Detection Architecture
 
+**Status:** Sprint 3 deterministic detection and alert generation implemented; ML, intelligence, incidents, and prevention workflows remain deferred
+
 ## Principles
 
-Detections produce versioned evidence, not enforcement. Deterministic methods remain available when ML or intelligence is degraded. Scores, confidence, and severity are distinct. Every alert is reproducible from stored references and configuration versions.
+Detections produce versioned evidence, not enforcement. Sprint 3 does not calculate risk or confidence and does not infer malicious intent from network behavior. Every alert is reproducible from an immutable rule definition or a strict signature event plus a versioned evidence snapshot.
 
 ## Pipeline
 
-1. Canonical telemetry passes schema and provenance checks.
-2. Suricata alerts become normalized signature signals.
-3. Behavioral rules evaluate event-time windows.
-4. Shared feature pipeline creates versioned vectors.
-5. Supervised model produces probabilities; anomaly model produces an anomaly score.
-6. Fresh intelligence and asset context are joined.
-7. Ensemble formula produces assessment and contributing-signal list.
-8. Deduplication/suppression creates or updates an alert.
-9. Analysts provide disposition used for evaluation, not immediate uncontrolled retraining.
+1. Sprint 2 canonical flows and Sprint 3 strict Suricata signature events pass schema/provenance checks.
+2. Successful ingestion creates a persisted, idempotent detection run and dispatches only its UUID on the JSON-only `detection` queue.
+3. Active immutable behavioral rule versions evaluate fixed UTC event-time buckets; signature events map directly to signature signals.
+4. Stable semantic keys deduplicate identical signals. Material late evidence creates a new signal while preserving the alert series.
+5. A versioned fingerprint creates or updates one alert per semantic series; bounded evidence snapshots remain explainable after 30-day flow cleanup.
+6. PostgreSQL commits alerts before Redis publishes minimal notification IDs. REST remains authoritative and polling is the fallback. Source signatures, signals, and runs expire after 30 days; bounded evidence snapshots remain with alerts for 180 days.
+
+Feature, ML, intelligence, ensemble, analyst disposition, and incident stages are future work and are not called by the Sprint 3 path.
 
 ## Initial rules
 
@@ -23,15 +24,19 @@ Detections produce versioned evidence, not enforcement. Deterministic methods re
 | Port scan indicator | Unique destination ports/hosts per source and window | Vulnerability scanners, admin discovery |
 | Repeated failures | Failed states per source/service/window | Misconfiguration, expired credentials |
 | High connection rate | Connection count/rate and burst | Proxies, monitoring, load tests |
-| DNS volume | Query rate/unique names/failure pattern | Resolvers, updates, busy clients |
-| Possible beaconing | Periodicity and repeated endpoint metadata | Health checks, telemetry agents |
-| Outbound volume | Bytes/rate versus asset/time context | Backups, updates, legitimate transfers |
+| Suricata signature | Strict signature ID/revision/category/severity plus bounded flow tuple | Upstream signature quality and policy-only signatures |
 
-Each rule version defines key, description, prerequisites, event-time window, threshold, grouping, suppression, severity suggestion, MITRE mapping if defensible, evidence, investigation, tests, and change rationale.
+The three behavioral rules above are the only initially active behavioral rules. DNS volume, beaconing, brute-force claims, and outbound-volume rules remain deferred until their canonical prerequisites and false-positive cases are defensible. Each rule version defines its evaluator key, validated parameters, fixed event-time window, severity, evidence contract, false-positive and investigation guidance, optional defensible MITRE mappings, and change rationale. PostgreSQL prevents mutation of definition fields after insertion.
 
 ## Alert fingerprinting
 
-A fingerprint uses normalized rule/category, relevant endpoints or asset, bounded time bucket, and rule/assessment version. Suppression must merge evidence/counts without erasing original first/last seen. Changes to fingerprint semantics require a version.
+Fingerprint schema `alert-fingerprint/v1` uses the signal series key: source type, rule version or signature identity, normalized grouping, and fixed time bucket. Exact reprocessing is a no-op. Material late evidence adds a uniquely hashed signal/evidence occurrence and updates the same alert without erasing first/last seen. A maximum of 100 evidence rows is stored per alert; further occurrences increment the overflow counter. Fingerprint semantic changes require a new schema version.
+
+## Lifecycle, authorization, and limits
+
+Rule versions move `draft → approved → active/retired`. Creation, review, activation, deactivation, and rollback require separate centralized permissions and produce audit records; activation uses an expected-active-version check. Viewer grouping/evidence omits source and destination addresses; sensitive evidence requires `alerts:read_sensitive`.
+
+One run evaluates at most 50 active rules, 5,000 groups, 10,000 signals, 1,000 alert mutations, and 100 evidence rows per alert. Celery uses 60-second soft and 75-second hard limits with two bounded retries. The live alert channel reauthorizes at most every 15 seconds, has an in-process queue of 100 messages per client, and closes revoked, expired, unauthorized, or slow consumers; REST polling remains available.
 
 ## Ensemble design
 

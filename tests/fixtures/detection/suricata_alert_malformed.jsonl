@@ -1,0 +1,2 @@
+{"timestamp":"not-a-time","event_type":"alert","src_ip":"192.0.2.41","dest_ip":"198.51.100.41","proto":"TCP","alert":{"signature_id":0,"rev":-1,"signature":"bad\u0000text","category":"invalid","severity":999}}
+{"timestamp":"2026-07-14T00:00:02+00:00","event_type":"alert","src_ip":"192.0.2.41","src_port":1,"dest_ip":"198.51.100.41","dest_port":2,"proto":"TCP","alert":{"signature_id":1,"rev":1,"signature":"missing category","severity":1}}

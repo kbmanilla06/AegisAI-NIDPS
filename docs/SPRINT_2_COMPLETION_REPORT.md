@@ -3,11 +3,15 @@
 **Date:** 2026-07-14
 **Branch:** `feature/sprint-2-ingestion`
 **Authorized base:** `61ef2cc9e79dbd987debc226e4349bd3cb8571a5`
-**Status:** Locally complete and reviewed; publication authorized, commit and hosted CI pending
+**Status:** Complete, published, and verified by hosted CI
 
 ## Entry gate
 
 Before implementation, local `HEAD` and published `origin/main` were confirmed at Sprint 1 commit `61ef2cc9e79dbd987debc226e4349bd3cb8571a5`. GitHub Actions CI Run #2 (`29312141925`) was confirmed `completed/success` for that exact SHA. The working tree was clean. The Sprint 1 completion report was then updated to preserve the publication SHA and hosted-CI result.
+
+## Publication gate
+
+The reviewed Sprint 2 implementation was published as `563e8f0f2a8bee3a22934a3455fdc36e52459082`. Hosted CI Run #3 exposed only that the repository-wide `*.log` ignore rule had excluded two Zeek fixtures. The CI-only correction renamed those fixtures to tracked `.tsv` files and was published as final Sprint 2 commit `29c2891f1e6bfe6686d4ef6c2489932d2f0a2fcd`. Hosted CI Run #4 (`29316924487`) completed successfully for that exact SHA on `main`.
 
 ## Scope delivered
 
@@ -207,11 +211,11 @@ One upstream Starlette test-harness deprecation warning remains (`httpx`-backed 
 | Simulation-only/no prohibited capability | Pass |
 | Documentation and completion report | Pass |
 | Owner review | Pass; publication authorized after corrections |
-| Sprint 2 commit/publication and hosted CI | Pending completion of the current gate |
+| Sprint 2 commit/publication and hosted CI | Pass; final commit `29c2891f`, hosted CI Run #4 succeeded |
 
 ## Final Sprint 2 decision
 
-**CONDITIONALLY APPROVED.** The authorized Sprint 2 implementation is complete and locally verified with no known unresolved Critical or High finding. It remains intentionally uncommitted. Final approval requires owner review of the full diff, one authorized commit/publication, and successful hosted CI. Sprint 3 remains prohibited.
+**APPROVED.** The reviewed Sprint 2 implementation is complete, published on `main` at `29c2891f1e6bfe6686d4ef6c2489932d2f0a2fcd`, and verified by successful hosted CI Run #4. No known unresolved Critical or High finding remains from the Sprint 2 gate.
 
 ## Exact Sprint 2 review/publication prompt
 
