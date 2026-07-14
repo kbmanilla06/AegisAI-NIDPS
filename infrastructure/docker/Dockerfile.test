@@ -11,5 +11,7 @@ COPY services ./services
 RUN python -m pip install --upgrade pip && python -m pip install ".[dev]"
 COPY tests ./tests
 COPY scripts ./scripts
+COPY migrations ./migrations
+COPY alembic.ini ./alembic.ini
 
 CMD ["pytest"]

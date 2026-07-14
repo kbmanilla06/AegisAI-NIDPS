@@ -1,6 +1,6 @@
 # Local Development and Deployment Strategy
 
-**Status:** Sprint 0 local foundation implemented and verified
+**Status:** Sprint 1 local identity foundation implemented and verified
 
 ## MVP topology
 
@@ -37,7 +37,7 @@ Structured JSON logs with correlation IDs, safe error codes, health/live and hea
 
 ## Clean-start evidence
 
-From the new local repository, `POSTGRES_PASSWORD=validation-only docker compose up --build --wait` created the two networks, two named volumes, built the three application images, and brought all five services to healthy/running state. The API liveness/readiness endpoints, dashboard HTTP response/security headers, and Celery worker ping passed. Migrations, bootstrap accounts, and fixtures are Sprint 1 or later work and therefore were not invented for this foundation.
+Sprint 1 was verified in an isolated Compose project with a fresh PostgreSQL volume. Migration `0001_sprint1_identity` upgraded, downgraded to base, and upgraded again successfully. PostgreSQL, Redis, API, worker, and dashboard reached healthy/running state; liveness reported simulation mode and readiness reported PostgreSQL/Redis healthy. The interactive bootstrap CLI created the first System Administrator without accepting a password through command arguments or environment variables, and a real API login persisted one hashed server-side session and safe audit records.
 
 ## Deferred decisions
 

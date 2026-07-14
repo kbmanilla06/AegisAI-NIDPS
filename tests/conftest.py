@@ -1,0 +1,99 @@
+import asyncio
+from collections.abc import AsyncIterator, Iterator
+from dataclasses import dataclass
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from aegis_api.database import get_db
+from aegis_api.main import create_app
+from aegis_api.models import Base, Permission, Role, User
+from aegis_api.security.passwords import password_service
+from aegis_api.security.permissions import ROLE_PERMISSION_MATRIX
+from aegis_api.security.throttle import LoginThrottle, get_login_throttle
+
+ORIGIN = "http://localhost:5173"
+PASSWORD = "correct-horse-battery-staple"  # noqa: S105  # nosec B105 - test fixture
+
+
+class AllowThrottle:
+    async def check(self, _client_address: str) -> None:
+        return None
+
+
+@dataclass(frozen=True)
+class AppHarness:
+    client: TestClient
+    session_factory: async_sessionmaker[AsyncSession]
+
+    def run(self, operation):  # type: ignore[no-untyped-def]
+        async def execute():  # type: ignore[no-untyped-def]
+            async with self.session_factory() as db:
+                return await operation(db)
+
+        return asyncio.run(execute())
+
+    def login(self, role: str = "System Administrator") -> tuple[dict[str, object], str]:
+        email = f"{role.lower().replace(' ', '.')}@example.com"
+        response = self.client.post(
+            "/api/v1/auth/login",
+            headers={"Origin": ORIGIN},
+            json={"email": email, "password": PASSWORD},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        return payload, str(payload["csrf_token"])
+
+
+@pytest.fixture
+def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
+    database_path = tmp_path / "aegis-test.sqlite"
+    test_engine = create_async_engine(f"sqlite+aiosqlite:///{database_path}")
+    session_factory = async_sessionmaker(test_engine, expire_on_commit=False)
+
+    async def prepare() -> None:
+        async with test_engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
+        async with session_factory() as db:
+            permissions = {
+                permission.value: Permission(
+                    key=permission.value, description=f"Allows {permission.value}"
+                )
+                for assigned in ROLE_PERMISSION_MATRIX.values()
+                for permission in assigned
+            }
+            roles: dict[str, Role] = {}
+            for role_name, assigned in ROLE_PERMISSION_MATRIX.items():
+                role = Role(
+                    name=role_name,
+                    description=f"Built-in {role_name} role",
+                    permissions=[permissions[item.value] for item in assigned],
+                )
+                roles[role_name] = role
+                db.add(role)
+            password_hash = password_service.hash(PASSWORD)
+            for role_name, role in roles.items():
+                db.add(
+                    User(
+                        email=f"{role_name.lower().replace(' ', '.')}@example.com",
+                        password_hash=password_hash,
+                        roles=[role],
+                    )
+                )
+            await db.commit()
+
+    asyncio.run(prepare())
+    app = create_app()
+
+    async def override_db() -> AsyncIterator[AsyncSession]:
+        async with session_factory() as db:
+            yield db
+
+    throttle: LoginThrottle = AllowThrottle()
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_login_throttle] = lambda: throttle
+    with TestClient(app, base_url="https://testserver") as client:
+        yield AppHarness(client, session_factory)
+    asyncio.run(test_engine.dispose())

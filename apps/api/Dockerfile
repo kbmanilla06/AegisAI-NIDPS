@@ -12,6 +12,8 @@ COPY pyproject.toml ./
 COPY apps/api ./apps/api
 COPY apps/worker ./apps/worker
 COPY services ./services
+COPY alembic.ini ./
+COPY migrations ./migrations
 RUN python -m pip install --upgrade pip && python -m pip install .
 
 USER aegis

@@ -1,6 +1,6 @@
 # AegisAI NIDPS
 
-A defensive, portfolio-oriented network intrusion detection platform. The current repository contains the Sprint 0 foundation only.
+A defensive, portfolio-oriented network intrusion detection platform. Sprint 1 provides the identity, RBAC, asset, sensor, and audit foundation. Sprint 2 telemetry ingestion has not begun.
 
 ## Safety status
 
@@ -20,10 +20,11 @@ A defensive, portfolio-oriented network intrusion detection platform. The curren
 2. Generate a unique local PostgreSQL password and place it only in `.env`.
 3. Run `docker compose config --quiet`.
 4. Run `docker compose up --build --wait`.
-5. Open `http://localhost:5173` and check `http://localhost:8000/api/v1/health/ready`.
-6. Stop with `docker compose down`. Add `--volumes` only when intentionally deleting local development data.
+5. Create the first administrator interactively: `docker compose run --rm migrate python -m aegis_api.cli bootstrap-admin --email you@example.com`. The password is read from the terminal and must not be put in the command, environment, or a file.
+6. Open `http://localhost:5173` and check `http://localhost:8000/api/v1/health/ready`.
+7. Stop with `docker compose down`. Add `--volumes` only when intentionally deleting local development data.
 
-Do not commit `.env`. Dataset acquisition is not part of Sprint 0; UNSW-NB15 terms are documented in `docs/DATASET_REVIEW_UNSW_NB15.md`.
+Do not commit `.env`. Dataset acquisition is not part of Sprint 1; UNSW-NB15 terms are documented in `docs/DATASET_REVIEW_UNSW_NB15.md`.
 
 ## Checks
 
@@ -31,4 +32,4 @@ Backend checks run through `make backend-check`; frontend checks run through `ma
 
 ## Documentation
 
-Start with `docs/PRD.md`, `docs/architecture/ARCHITECTURE.md`, `docs/threat-model/THREAT_MODEL.md`, and `docs/SPRINT_0_DESIGN_REVIEW.md`.
+Start with `docs/PRD.md`, `docs/architecture/ARCHITECTURE.md`, `docs/threat-model/THREAT_MODEL.md`, and `docs/SPRINT_1_COMPLETION_REPORT.md`.

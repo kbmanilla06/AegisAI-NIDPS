@@ -1,6 +1,6 @@
 # REST and WebSocket API Specification
 
-**Status:** Route-level design; OpenAPI generation follows implementation approval
+**Status:** Sprint 1 identity and inventory routes implemented; later routes remain approved design
 **Base:** `/api/v1`
 **Common:** authenticated unless public health; JSON; correlation ID; stable error `{code,message,correlation_id,details?}`; pagination on collections.
 
@@ -10,6 +10,7 @@
 |---|---|---|---|
 | POST `/auth/login` | Authenticate | Public | Strict credential schema; aggressive rate limit; audit success/failure without secret |
 | POST `/auth/logout` | Revoke current credential | Authenticated | Idempotent; audit |
+| GET `/auth/me` | Restore current browser session | Authenticated | Returns user and effective permission keys; no credential |
 | GET `/auth/csrf` | Obtain/rotate session-bound CSRF token | Authenticated | No caching; same-origin; token contains no session secret |
 | GET/POST `/users` | List/create users | System Admin | Explicit fields; pagination; audit create |
 | PATCH `/users/{id}` | Status/allowed profile changes | System Admin | Concurrency check; prevent privilege mass assignment; audit |
@@ -17,7 +18,9 @@
 | PUT `/users/{id}/roles` | Assign roles | System Admin | Cannot remove last required admin without safe policy; audit |
 | GET/POST `/assets` | List/create assets | Analyst read; Security Admin write | Canonical address/criticality/zone; audit writes |
 | GET/POST `/sensors` | List/register sensors | Security Admin | Never return stored secret; rate limit; audit |
-| POST `/sensors/{id}/rotate` | Rotate credential | Security Admin | Step-up policy decision pending; one-time display; audit |
+| POST `/sensors/{id}/rotate` | Rotate credential | Security Admin | One-time display; stored SHA-256 hash only; audit |
+| PATCH `/sensors/{id}` | Activate/deactivate sensor | Security Admin | Expected-version check; audit |
+| PUT `/assets/{id}` | Update asset | Security Admin | Expected-version check; audit |
 
 ## Ingestion
 
@@ -86,7 +89,7 @@ No approval or real-execution route exists in the Sprints 0–9 API.
 
 ## Error and rate-limit policy
 
-Use 400 schema, 401 unauthenticated, 403 unauthorized, 404 non-disclosing absence, 409 state/idempotency conflict, 413 size, 415 format, 422 semantic validation, 429 limit, 503 dependency/degraded. Numeric rate limits remain an approval/performance decision and must be configurable and tested.
+Use 400 schema, 401 unauthenticated, 403 unauthorized, 404 non-disclosing absence, 409 state/idempotency conflict, 413 size, 415 format, 422 semantic validation, 429 limit, 503 dependency/degraded. Sprint 1 defaults are configurable: 10 login attempts per IP per 300 seconds and account lockout for 15 minutes after 5 failed attempts.
 
 ## Cookie-session and CSRF policy
 

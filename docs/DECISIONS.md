@@ -21,6 +21,7 @@
 | C-15 | Development host is an Apple M2 MacBook Air with 8 CPU cores, 8 GB RAM, macOS 26.5.2, ARM64, and approximately 300 GiB available at approval time. |
 | C-16 | Incident and analyst-note retention is 180 days; generated reports and stored predictions are retained for 30 days; exceptional investigation holds are disabled for the MVP. |
 | C-17 | The owner approved the recommended defaults and authorized the Sprint 0 foundation on 2026-07-14. |
+| C-18 | Hosted Sprint 0 CI Run #1 passed for commit `44dbc59`; the owner authorized Sprint 1 on 2026-07-14. |
 
 ## Safe working assumptions
 
@@ -44,6 +45,8 @@
 | D-07 | Development retention | Raw uploads: delete after successful processing or within 24 hours; flows: 30 days; alerts, audit, incidents, and analyst notes: 180 days; reports and predictions: 30 days; exceptional holds disabled. |
 | D-08 | File/artifact storage | Controlled local volume; DB stores opaque references, size, media type, and SHA-256. |
 | D-09 | Safe model serialization | Choose after library/version threat review; prohibit arbitrary untrusted pickle. |
+| D-10 | Sprint 1 password/session defaults | Argon2id (64 MiB, 3 iterations, parallelism 1); 12-character minimum; 30-minute idle and 8-hour absolute session expiry; 5 failures lock an account for 15 minutes; Redis limits an IP to 10 login attempts per 300 seconds. |
+| D-11 | Built-in roles | Viewer, SOC Analyst, Senior Analyst, Security Administrator, System Administrator, and Auditor are migration-seeded; permission enforcement is server-side and centralized. |
 ## Owner decisions deferred beyond scaffolding
 
 | ID | Decision | Why it blocks |

@@ -1,8 +1,8 @@
 .PHONY: backend-check frontend-check test compose-config up down
 
 backend-check:
-	ruff check apps services tests
-	ruff format --check apps services tests
+	ruff check apps services tests scripts migrations
+	ruff format --check apps services tests scripts migrations
 	mypy
 	bandit -c pyproject.toml -r apps services
 	pytest

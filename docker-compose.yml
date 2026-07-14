@@ -45,6 +45,25 @@ services:
       - SETGID
       - SETUID
 
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      AEGIS_ENVIRONMENT: development
+      AEGIS_PREVENTION_MODE: simulation
+      AEGIS_DATABASE_URL: postgresql+asyncpg://aegis:${POSTGRES_PASSWORD}@postgres:5432/aegis
+      AEGIS_REDIS_URL: redis://redis:6379/0
+    networks: [data]
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: "no"
+    <<: *common-security
+
   api:
     build:
       context: .
@@ -65,7 +84,7 @@ services:
       - /tmp:size=64m,mode=1777
     read_only: true
     depends_on:
-      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=2)"]
@@ -92,7 +111,7 @@ services:
       - /tmp:size=64m,mode=1777
     read_only: true
     depends_on:
-      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
     restart: unless-stopped
     <<: *common-security

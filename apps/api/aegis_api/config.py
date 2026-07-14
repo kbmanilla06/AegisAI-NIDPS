@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     report_retention_days: int = Field(default=30, ge=1)
     prediction_retention_days: int = Field(default=30, ge=1)
     exceptional_holds_enabled: Literal[False] = False
+    session_idle_minutes: int = Field(default=30, ge=5, le=120)
+    session_absolute_hours: int = Field(default=8, ge=1, le=24)
+    session_cookie_secure: Literal[True] = True
+    login_ip_limit: int = Field(default=10, ge=3, le=100)
+    login_ip_window_seconds: int = Field(default=300, ge=60, le=3600)
+    login_failure_limit: int = Field(default=5, ge=3, le=20)
+    login_lockout_minutes: int = Field(default=15, ge=1, le=120)
+    password_min_length: int = Field(default=12, ge=12, le=64)
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

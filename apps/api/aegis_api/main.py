@@ -1,17 +1,30 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from aegis_api.config import get_settings
+from aegis_api.database import engine
 from aegis_api.dependencies import postgres_check, redis_check
+from aegis_api.errors import install_error_handlers
 from aegis_api.health import HealthChecks, create_health_router
+from aegis_api.middleware import install_correlation_middleware
+from aegis_api.routers import assets, audit, auth, sensors, users
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):  # type: ignore[no-untyped-def]
+    yield
+    await engine.dispose()
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
         title="AegisAI NIDPS API",
-        version="0.1.0",
-        description="Sprint 0 foundation. Prevention is simulation-only.",
+        version="0.2.0",
+        description="Sprint 1 secure platform shell. Prevention is simulation-only.",
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,
@@ -20,8 +33,15 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Content-Type", "X-CSRF-Token", "X-Correlation-ID", "Idempotency-Key"],
     )
+    install_correlation_middleware(app)
+    install_error_handlers(app)
     checks = HealthChecks(postgres=postgres_check(settings), redis=redis_check(settings))
     app.include_router(create_health_router(checks))
+    app.include_router(auth.router)
+    app.include_router(users.router)
+    app.include_router(assets.router)
+    app.include_router(sensors.router)
+    app.include_router(audit.router)
     return app
 
 

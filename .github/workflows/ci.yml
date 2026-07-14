@@ -23,8 +23,8 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
-      - run: ruff check apps services tests scripts
-      - run: ruff format --check apps services tests scripts
+      - run: ruff check apps services tests scripts migrations
+      - run: ruff format --check apps services tests scripts migrations
       - run: mypy
       - run: bandit -c pyproject.toml -r apps services
       - run: pytest

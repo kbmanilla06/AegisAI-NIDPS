@@ -1,4 +1,4 @@
-# Sprint 0 Backlog and Forward Plan
+# Sprint Backlog and Forward Plan
 
 ## Sprint 0 planning items
 
@@ -25,4 +25,6 @@ S1 identity/RBAC/assets/sensors; S2 ingestion; S3 deterministic detection; S4 fe
 
 ## Initial Sprint 1 issue order after Sprint 0 completion
 
-Permission matrix → identity schema/migration → password/session lifecycle → auth API → centralized RBAC → audit foundation → assets → sensors/credential rotation → minimal UI → security/integration tests → documentation/review.
+Permission matrix → identity schema/migration → password/session lifecycle → auth API → centralized RBAC → audit foundation → assets → sensors/credential rotation → minimal UI → security/integration tests → documentation/review. **Status: implemented and locally verified; awaiting owner review and hosted CI before Sprint 2 authorization.**
+
+Sprint 2 telemetry ingestion remains blocked. No ingestion route, packet capture, dataset, model, or real prevention capability was added in Sprint 1.

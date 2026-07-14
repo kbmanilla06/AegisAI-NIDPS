@@ -1,6 +1,6 @@
 # PostgreSQL Data Design
 
-**Status:** Logical design only; no database or migrations created
+**Status:** Sprint 1 identity, inventory, session, and audit subset implemented; later tables remain logical design
 
 ## Conventions
 
@@ -15,14 +15,14 @@
 
 | Table | Key columns and constraints | Index/retention/sensitivity |
 |---|---|---|
-| users | id, email unique normalized, password_hash, status, failed_count, locked_until, last_login_at | email index; restricted; retain audit references |
+| users | id, email unique normalized, password_hash, is_active, failed_login_count, locked_until, last_login_at, version | email index; restricted; retain audit references |
 | roles | id, name unique, description | controlled reference |
-| permissions | id, action+resource unique | controlled reference |
+| permissions | id, key unique (`resource:action`) | controlled reference |
 | user_roles | user_id+role_id unique FK | authorization-critical |
 | role_permissions | role_id+permission_id unique FK | authorization-critical |
-| sessions | id, user_id, session_id_hash unique, csrf_secret_hash/derivation metadata, idle_expires_at, absolute_expires_at, revoked_at, rotated_from_id, safe client metadata | expiry/revocation index; restricted; opaque cookie value is never stored plaintext |
-| sensors | id, name unique, type, credential_hash, status, schema_version, last_seen_at | restricted credential; status index |
-| assets | id, canonical_address/name, zone, owner, criticality, internal flag, status | unique canonical identity; policy-critical |
+| sessions | id, user_id, token_hash unique, csrf_hash, idle_expires_at, absolute_expires_at, last_seen_at, revoked_at, rotated_from_id | expiry/revocation indexes; restricted; opaque cookie and CSRF values are never stored plaintext |
+| sensors | id, name unique, sensor_type, credential_hash, credential_version, status, schema_version, asset_id, last_seen_at, version | restricted credential; raw credential is displayed only on issue/rotation |
+| assets | id, name unique, address, network_zone, criticality, is_internal, is_active, version | policy-critical; updates use optimistic version checks |
 
 ## Ingestion and telemetry
 
@@ -76,7 +76,7 @@
 
 | Table | Key columns and constraints | Notes |
 |---|---|---|
-| audit_events | id, occurred_at, actor_type/id, action, resource_type/id, outcome, correlation_id, before_hash/after_hash, safe_metadata | append-oriented; no update/delete application permission; long retention |
+| audit_events | id, occurred_at, actor_user_id, action, resource_type/id, outcome, correlation_id, safe_metadata | PostgreSQL trigger rejects update/delete; API exposes no mutation route; 180-day retention policy |
 | configuration_versions | id, key, version, value/safe_ref, sensitivity, status, created_by | secrets stored as references, not values |
 | notifications | id, user_id, type, resource_ref, read_at, created_at | bounded retention |
 | report_jobs | id, type, status, requested_by, params, output_ref, expires_at, error_code | RBAC and export audit |
@@ -91,17 +91,16 @@
 - Alerts and predictions must reference immutable rule/model/feature versions when those sources contribute.
 - Audit records are not cascade-deleted.
 
-## Proposed migration order
+## Migration order
 
-1. Identity/reference tables.
-2. Assets and sensors.
-3. Ingestion jobs and telemetry.
-4. Version registries and detection signals.
-5. Intelligence.
-6. Alerts/evidence/notes.
-7. Incidents/timeline.
-8. Prevention policies/allowlists/requests/gates/previews/simulation records.
-9. Audit/configuration/notifications/reports/retention.
-10. Performance indexes/partitioning only after measured query/load evidence.
+1. Identity/reference tables, sessions, assets, sensors, and audit foundation — implemented by reversible migration `0001_sprint1_identity`.
+2. Ingestion jobs and telemetry.
+3. Version registries and detection signals.
+4. Intelligence.
+5. Alerts/evidence/notes.
+6. Incidents/timeline.
+7. Prevention policies/allowlists/requests/gates/previews/simulation records.
+8. Configuration/notifications/reports/retention.
+9. Performance indexes/partitioning only after measured query/load evidence.
 
 Every migration requires forward/rollback review, existing-data compatibility, lock-risk analysis, and preservation of audit/model/prevention lineage.
