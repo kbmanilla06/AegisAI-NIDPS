@@ -164,6 +164,7 @@ One upstream Starlette test-harness deprecation warning remains (`httpx`-backed 
 ## Failures and skipped checks
 
 - Three High findings were corrected and reverified: two discovered through clean real-stack verification and the hostile-timestamp retention bypass found during the publication review.
+- Hosted CI Run #3 failed only because the repository-wide `*.log` ignore rule excluded the two Zeek fixtures from commit `563e8f0`; 68 other backend tests and both frontend/container jobs passed. The fixtures were renamed to tracked `.tsv` files for the CI correction.
 - The first final health command used `/health/*` without the documented `/api/v1` base and returned 404; the corrected URLs passed.
 - The Alpine frontend verification attempt failed because it mounted the macOS optional native dependency tree. Platform-correct host checks passed; hosted Linux CI must still install from the lockfile on publication.
 - Semgrep, Trivy/container vulnerability scanning, SBOM generation, OWASP ZAP, full browser E2E, accessibility automation, long-running property fuzzing, representative load/soak testing, packet-parser sandboxing beyond the bounded container, backup/restore, and non-local TLS were not configured gates and were not run. These omissions are residual hardening work, not represented as passes.

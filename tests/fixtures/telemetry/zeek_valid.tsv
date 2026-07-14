@@ -1,0 +1,4 @@
+#separator \x09
+#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	service	duration	orig_bytes	resp_bytes	conn_state	orig_pkts	resp_pkts
+1783987200.000000	Csynthetic1	192.0.2.30	50100	198.51.100.30	443	tcp	ssl	1.250	1200	2400	SF	6	7
+#close	2026-07-14-00-00-02

@@ -46,13 +46,13 @@ def test_malformed_and_unicode_records_fail_without_content_echo() -> None:
 
 
 def test_zeek_conn_log_maps_strict_fields() -> None:
-    result = parsed("zeek_valid.log", "zeek")
+    result = parsed("zeek_valid.tsv", "zeek")
     flow = result[0].flow
     assert flow is not None
     assert flow.source_event_id == "Csynthetic1"
     assert flow.packet_count == 13
     assert flow.byte_count == 3600
-    assert parsed("zeek_malformed.log", "zeek")[0].error_code == "invalid_record"
+    assert parsed("zeek_malformed.tsv", "zeek")[0].error_code == "invalid_record"
 
 
 def test_suricata_flow_maps_and_alert_is_deferred() -> None:
