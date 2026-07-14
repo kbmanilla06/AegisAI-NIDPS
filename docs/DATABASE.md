@@ -1,6 +1,6 @@
 # PostgreSQL Data Design
 
-**Status:** Sprint 1 identity, Sprint 2 ingestion/flow, and Sprint 3 deterministic detection/alert subsets implemented; later tables remain logical design
+**Status:** Sprint 1 identity, Sprint 2 ingestion/flow, Sprint 3 deterministic detection/alert, and Sprint 4 feature/dataset metadata subsets implemented; later tables remain logical design
 
 ## Conventions
 
@@ -39,10 +39,13 @@
 | rule_versions | id, rule_key+version unique, schema/evaluator, parameters/evidence/MITRE JSON, window, severity/guidance/rationale, definition_hash unique, lifecycle, is_active, creator/reviewer/timestamps | partial unique active rule; PostgreSQL trigger makes definition fields immutable |
 | rule_activations | id, rule_key, version ref nullable for deactivation, action, actor, reason, regression evidence, previous version, occurred_at | append-only lifecycle provenance |
 | signature_events | id, event_key+schema_version unique, source job/sensor, event time, normalized tuple, signature ID/revision/category/severity, created_at | strict no-payload canonical signature v1; 30-day source-event retention |
-| detection_runs | id, source job unique, status, ruleset hash, counts, safe error, timestamps | persisted before dispatch; pending reconciliation; 180-day retention |
+| detection_runs | id, source job unique, status, ruleset hash, counts, safe error, timestamps | persisted before dispatch; pending reconciliation; 30-day transient detection retention |
 | detection_signals | id, run, optional rule version/signature event, source/category/severity, series/semantic keys, window/group/evidence JSON and hash | semantic key unique; no Sprint 3 risk/confidence fields |
-| feature_schema_versions | id, name+version unique, ordered_definition, hash, status | immutable |
-| dataset_versions | id, name+version unique, source, license, sha256, manifest, split_manifest | controlled metadata, no raw data in DB/Git |
+| feature_schema_versions | id, name+version unique, input schema, ordered definition, preprocessing config, banned fields, definition hash, code version, lifecycle/review | definition fields protected by PostgreSQL trigger; lifecycle is draft/approved/retired |
+| dataset_versions | id, name+version unique, official source/publisher/use/terms, acquisition flag, manifest/hash, status/review | immutable definition; Sprint 4 seed is metadata-only and acquisition=false |
+| dataset_split_versions | dataset ref, strategy, immutable manifest/hash, non-zero train/validation/test counts, reviewer | no split exists until a dataset is separately acquired and accepted |
+| feature_materialization_jobs | requester, approved schema, successful ingestion job, actor-scoped idempotency key, bounded limit, status/counts/snapshot/quality/safe error/timestamps | pending reconciliation; JSON-only Celery UUID dispatch |
+| feature_artifacts | materialization/schema refs, opaque object ref, Parquet media type, SHA-256, size/shape, source snapshot, code version, retention/expiry/status | immutable definition; controlled local volume; 30-day expiry |
 | model_versions | id, name+version unique, algorithm, artifact_ref, sha256, dataset_version_id, feature_schema_version_id, runtime, status, card_ref | activation permission/audit; one active per purpose via partial unique index |
 | model_metrics | id, model_version_id, split, metric_name, class_label, value, context | unique metric identity where practical |
 | predictions | id, flow_id, model_version_id, feature_schema_version_id, class, probabilities, latency_ms, created_at | traceable; retention configurable |
@@ -98,11 +101,12 @@
 1. Identity/reference tables, sessions, assets, sensors, and audit foundation — implemented by reversible migration `0001_sprint1_identity`.
 2. Ingestion jobs and telemetry — implemented by reversible migration `0002_sprint2_ingestion`; seeds `telemetry:read`, `ingestion:submit`, and `ingestion:replay` permissions.
 3. Rule versions/activations, canonical signatures, runs/signals, and alert/evidence foundation — implemented by reversible migration `0003_sprint3_detection`; seeds seven permissions and three approved active behavioral rules.
-4. Intelligence.
-5. Alert workflow/notes.
-6. Incidents/timeline.
-7. Prevention policies/allowlists/requests/gates/previews/simulation records.
-8. Configuration/notifications/reports/retention.
-9. Performance indexes/partitioning only after measured query/load evidence.
+4. Feature schema, dataset/split metadata, materialization jobs, and controlled artifacts — implemented by reversible migration `0004_sprint4_features`; seeds five permissions, immutable flow feature v1, and metadata-only UNSW-NB15 review.
+5. Intelligence.
+6. Alert workflow/notes.
+7. Incidents/timeline.
+8. Prevention policies/allowlists/requests/gates/previews/simulation records.
+9. Configuration/notifications/reports/retention.
+10. Performance indexes/partitioning only after measured query/load evidence.
 
 Every migration requires forward/rollback review, existing-data compatibility, lock-risk analysis, and preservation of audit/model/prevention lineage.

@@ -116,3 +116,32 @@ test("shows versioned deterministic rules and alerts with bounded live status", 
   expect(await screen.findByText("Live updates: connected")).toBeInTheDocument();
   expect(screen.getByText(/Rules never invoke prevention/)).toBeInTheDocument();
 });
+
+test("shows feature and dataset governance metadata without raw rows or vectors", async () => {
+  const auth = {
+    user: { id: "u1", email: "analyst@example.com", roles: ["Senior Analyst"], is_active: true, version: 1 },
+    permissions: ["features:read", "datasets:read"],
+  };
+  vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response(JSON.stringify({ status: "ok", prevention_mode: "simulation" }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(auth), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ csrf_token: "csrf-memory-only" }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify([{
+      id: "schema-1", name: "flow_features", version: "1.0.0", definition_hash: "a".repeat(64),
+      lifecycle_state: "approved", ordered_definition: {
+        windows: [{ seconds: 60 }, { seconds: 300 }],
+        features: [{ name: "duration_ms", dtype: "int64", unit: "milliseconds", missing_policy: "required" }],
+      },
+    }]), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify([{
+      id: "dataset-1", name: "UNSW-NB15", version: "official-source-review-2026-07-14",
+      publisher: "UNSW Canberra at ADFA", status: "proposed", citation_required: true,
+      commercial_approval_required: true, acquisition_authorized: false,
+    }]), { status: 200 }));
+  render(<App />);
+  expect(await screen.findByText("Feature engineering")).toBeInTheDocument();
+  expect(await screen.findByText(/UNSW-NB15.*acquisition not authorized/)).toBeInTheDocument();
+  expect(screen.getByText(/Raw endpoints, vectors, paths, labels/)).toBeInTheDocument();
+  expect(screen.queryByText("192.0.2.10")).not.toBeInTheDocument();
+});

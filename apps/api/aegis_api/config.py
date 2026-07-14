@@ -52,6 +52,16 @@ class Settings(BaseSettings):
     detection_hard_limit_seconds: int = Field(default=75, ge=10, le=330)
     detection_pending_delay_seconds: int = Field(default=60, ge=10, le=3600)
     live_alert_queue_size: int = Field(default=100, ge=1, le=1_000)
+    feature_max_schemas: int = Field(default=10, ge=1, le=50)
+    feature_max_features: int = Field(default=128, ge=1, le=128)
+    feature_max_windows: int = Field(default=4, ge=1, le=4)
+    feature_max_flows: int = Field(default=10_000, ge=1, le=10_000)
+    feature_max_output_rows: int = Field(default=100_000, ge=1, le=100_000)
+    feature_max_output_bytes: int = Field(default=67_108_864, ge=1_048_576, le=268_435_456)
+    feature_soft_limit_seconds: int = Field(default=120, ge=10, le=300)
+    feature_hard_limit_seconds: int = Field(default=135, ge=15, le=330)
+    feature_pending_delay_seconds: int = Field(default=60, ge=10, le=3600)
+    feature_retention_days: int = Field(default=30, ge=1, le=30)
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

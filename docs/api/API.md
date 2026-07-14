@@ -1,6 +1,6 @@
 # REST and WebSocket API Specification
 
-**Status:** Sprint 1 identity/inventory, Sprint 2 ingestion/flow, and Sprint 3 rule/detection/alert routes implemented; later workflow routes remain approved design
+**Status:** Sprint 1 identity/inventory, Sprint 2 ingestion/flow, Sprint 3 detection, and Sprint 4 feature/dataset metadata routes implemented; later workflow routes remain approved design
 **Base:** `/api/v1`
 **Common:** authenticated unless public health; JSON; correlation ID; stable error `{code,message,correlation_id,details?}`; pagination on collections.
 
@@ -65,6 +65,21 @@ Job states are `pending`, `processing`, `succeeded`, `failed`, or `rejected`. Re
 The PATCH/note/incident routes in the final rows are deferred to Sprint 8 and do not exist in Sprint 3. Sprint 3 alerts remain status `new`; there is no assignment, disposition, incident, model, risk, confidence, or prevention action.
 
 ## Intelligence and ML
+
+### Sprint 4 feature and dataset metadata
+
+| Method/path | Purpose | Permission | Controls |
+|---|---|---|---|
+| GET `/feature-schemas` | List schema metadata | `features:read` | Bounded list; no raw vectors |
+| GET `/feature-schemas/{id}` | Inspect immutable definition | `features:read` | Definition/hash/review provenance |
+| POST `/feature-schemas/{id}/review` | Approve or retire | `features:review` | Security Administrator only; CSRF+Origin; reason/evidence; audit |
+| POST `/feature-jobs` | Materialize successful ingestion flows | `features:materialize` | Approved schema; 1–10,000 rows; actor idempotency; UUID-only Celery task; audit |
+| GET `/feature-jobs` and `/{id}` | Inspect safe status/artifact metadata | `features:read` | No object ref, path, vector, or raw endpoint output |
+| GET `/datasets` and `/{id}` | Inspect dataset governance metadata | `datasets:read` | No payload/file path |
+| POST `/datasets` | Record metadata-only proposal | `datasets:manage` | Acquisition/files rejected; CSRF+Origin; audit |
+| POST `/datasets/{id}/review` | Accept/retire metadata | `datasets:manage` | Security Administrator only; no acquisition side effect; audit |
+
+Feature jobs accept only flows from one succeeded ingestion job, order by `(event_time,event_key)`, write an opaque controlled Parquet artifact, and expose SHA-256/shape/expiry metadata. They do not train, load, score, or register a model.
 
 | Method/path | Purpose | Roles | Controls |
 |---|---|---|---|

@@ -59,6 +59,10 @@ flowchart LR
 
 Ground-truth labels never enter inference features. Activation is audited; rollback target remains available. Model promotion cannot alter prevention policy.
 
+### Implemented Sprint 4 boundary
+
+No training path is active yet. Sprint 4 implements only canonical flow v1 → approved immutable feature schema → ordered direct and 60/300-second event-time transforms → atomic controlled Parquet. PostgreSQL stores the source snapshot, schema/artifact hashes, row/column counts, safe quality summary, and 30-day expiry. Raw identities are context/provenance only; labels and detection outputs are prohibited vector inputs.
+
 ## DF-04 Analyst investigation
 
 Browser requests are authenticated and authorized at the API. The API loads redacted alert, evidence, explanation, and history. State changes pass a server-side transition check, optimistic concurrency/version check, and audit write. WebSocket messages contain minimal identifiers and summaries; clients fetch authorized detail.
@@ -102,6 +106,6 @@ Invariant: no firewall binary, socket, API credential, privileged container, or 
 - Canonical flow metadata: 30 days in development.
 - Alerts/incidents/audit: 180 days in development or until portfolio evidence is exported.
 - Failed job details: 30 days, without raw secrets/payloads.
-- Model/dataset manifests and reports: retained by version; raw datasets remain outside Git.
+- Dataset manifests are retained by version; raw datasets remain outside Git. Controlled feature artifacts expire after 30 days.
 
-Flow, alert, and audit periods are approved for development. Incident notes, reports, predictions, and exceptional legal/incident holds remain unresolved in `docs/DECISIONS.md`.
+The approved development periods are: flows 30 days; feature artifacts 30 days; alerts, incidents, analyst notes, and audit records 180 days; generated reports and stored predictions 30 days. Exceptional investigation holds are disabled for the MVP.

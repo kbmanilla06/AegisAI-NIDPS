@@ -2,7 +2,7 @@
 
 **Scope:** Sprints 0–9 design; simulation-only prevention
 **Method:** STRIDE plus abuse-case review
-**Status:** Sprint 3 review applied for rule lifecycle, deterministic detection, alert evidence, live notification, and retention boundaries
+**Status:** Sprint 4 review applied for feature determinism/leakage, dataset governance, Parquet artifacts, worker limits, review RBAC, and retention boundaries
 
 ## Assets
 
@@ -48,6 +48,11 @@ Severity combines plausible impact and likelihood for the proposed local MVP. Cr
 | TM-26 | T/E | Malicious Celery serialization/task envelope | Worker code execution or resource abuse | Medium | Critical | JSON-only serializer, task allowlist, bounded IDs, no pickle, broker isolation | Serializer/config and malformed-task tests | Low |
 | TM-27 | I/D | Sensitive or unbounded live alert notification | Endpoint leakage or client/broker exhaustion | Medium | High | Exact Origin/session/RBAC before upgrade and every 15 seconds, ID-only payload, 100-message client queue, revoked/expired/slow-client close, REST authorization/polling | WebSocket denial/revocation/contract tests and real Redis task check | Medium; representative fan-out load deferred |
 | TM-28 | T/R | Duplicate, late, or reordered evidence rewrites alert history | False counts or lost provenance | High | High | Fixed UTC buckets, stable series/semantic/fingerprint hashes, DB uniqueness, append evidence, immutable snapshots | exact-rerun, out-of-order, late-evidence, cleanup tests | Low |
+| TM-29 | T/R | Feature definition/order/window drift breaks reproducibility | Invalid training/inference evidence | High | High | Immutable schema/hash, closed implementation, stable tuple ordering, snapshot/vector/artifact hashes, PostgreSQL mutation trigger | Determinism, parity, mutation, schema-compatibility tests | Low for feature v1 |
+| TM-30 | T/I | Labels, identities, or post-detection fields leak into model values | Inflated metrics or privacy exposure | High | High | Explicit denylist, identity used only for grouping/provenance, strict output column allowlist, no raw vector API/UI | Leakage fixtures and Parquet column inspection | Low for implemented path; split audit remains required |
+| TM-31 | T/D/E | Malicious or corrupt feature artifact/path/native Parquet input | Tampering, traversal, outage, or unsafe future load | Medium | High | Opaque UUID object, controlled root, atomic mode-0600 write, non-executable Parquet, SHA-256 verify, byte/row/column/time caps, no client artifact import | traversal/hash/size tests, dependency audit, worker limits | Medium; native/container scan deferred |
+| TM-32 | T/R | Unauthorized or self-review changes feature/dataset governance | Unreviewed data contract or dataset use | Medium | High | Security Administrator-only review/manage, CSRF+Origin, explicit fields, immutable definitions, complete audit | six-role denial and audit tests | Low for solo-project governance |
+| TM-33 | R/T | Dataset metadata is mistaken for acquisition approval | Terms breach or unreviewed data use | Medium | High | acquisition=false, files empty, proposal API rejects files/acquisition, publisher review record, explicit raw-PCAP exclusion | API/migration/document review | Low until separate acquisition authorization |
 
 ## Prioritized security backlog
 

@@ -1,0 +1,29 @@
+{
+  "schema_version": "feature-leakage-fixtures/v1",
+  "banned": [
+    "label",
+    "attack_cat",
+    "row_id",
+    "event_key",
+    "source_event_id",
+    "job_id",
+    "sensor_id",
+    "src_address",
+    "dst_address",
+    "event_time",
+    "alert",
+    "rule_match",
+    "severity",
+    "risk",
+    "confidence",
+    "incident",
+    "prevention",
+    "split",
+    "source_filename"
+  ],
+  "unseen_categories": {
+    "training": ["tcp", "udp"],
+    "validation": ["gre"],
+    "expected_validation_token": "__UNKNOWN__"
+  }
+}

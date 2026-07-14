@@ -20,6 +20,11 @@ class PermissionKey(StrEnum):
     ALERTS_READ = "alerts:read"
     ALERTS_READ_SENSITIVE = "alerts:read_sensitive"
     DETECTIONS_READ_METRICS = "detections:read_metrics"
+    FEATURES_READ = "features:read"
+    FEATURES_MATERIALIZE = "features:materialize"
+    FEATURES_REVIEW = "features:review"
+    DATASETS_READ = "datasets:read"
+    DATASETS_MANAGE = "datasets:manage"
     PREVENTION_READ = "prevention:read"
     PREVENTION_MANAGE = "prevention:manage"
 
@@ -37,6 +42,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.ALERTS_READ,
             PermissionKey.ALERTS_READ_SENSITIVE,
             PermissionKey.DETECTIONS_READ_METRICS,
+            PermissionKey.FEATURES_READ,
         }
     ),
     "Senior Analyst": frozenset(
@@ -49,6 +55,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.ALERTS_READ,
             PermissionKey.ALERTS_READ_SENSITIVE,
             PermissionKey.DETECTIONS_READ_METRICS,
+            PermissionKey.FEATURES_READ,
+            PermissionKey.DATASETS_READ,
         }
     ),
     "Security Administrator": frozenset(
@@ -71,9 +79,16 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.DETECTIONS_READ_METRICS,
             PermissionKey.PREVENTION_READ,
             PermissionKey.PREVENTION_MANAGE,
+            PermissionKey.FEATURES_READ,
+            PermissionKey.FEATURES_MATERIALIZE,
+            PermissionKey.FEATURES_REVIEW,
+            PermissionKey.DATASETS_READ,
+            PermissionKey.DATASETS_MANAGE,
         }
     ),
-    "System Administrator": frozenset(PermissionKey),
+    "System Administrator": frozenset(
+        set(PermissionKey) - {PermissionKey.FEATURES_REVIEW, PermissionKey.DATASETS_MANAGE}
+    ),
     "Auditor": frozenset(
         {
             PermissionKey.ROLES_READ,
@@ -86,6 +101,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.ALERTS_READ_SENSITIVE,
             PermissionKey.DETECTIONS_READ_METRICS,
             PermissionKey.PREVENTION_READ,
+            PermissionKey.FEATURES_READ,
+            PermissionKey.DATASETS_READ,
         }
     ),
 }

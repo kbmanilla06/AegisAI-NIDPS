@@ -1,6 +1,6 @@
 # Machine Learning and Dataset Plan
 
-**Status:** Planning only; no data downloaded and no model trained
+**Status:** Sprint 4 feature/data contracts implemented with synthetic fixtures; no dataset downloaded and no model trained
 
 ## Objectives
 
@@ -8,7 +8,7 @@ Provide calibrated, explainable evidence for known attack categories and unusual
 
 ## Primary candidate and other datasets
 
-UNSW-NB15 is the approved primary candidate, not yet an approved download. The official UNSW review and restrictions are recorded in `docs/DATASET_REVIEW_UNSW_NB15.md`. Repository visibility, project license, and intended use must be resolved first. CIC-IDS2017, CSE-CIC-IDS2018, or TON_IoT may later provide independent validation after their own source/license review. NSL-KDD may be used only as a historical baseline.
+UNSW-NB15 is the primary candidate, not an approved download. The 2026-07-14 publisher-only investigation is recorded in `docs/data/UNSW_NB15_OFFICIAL_SOURCE_REVIEW_2026-07-14.md`: acquisition is false, files/checksums are empty, citation remains required, commercial use requires author agreement, and the raw approximately 100 GB PCAP is excluded. CIC-IDS2017, CSE-CIC-IDS2018, or TON_IoT may later provide independent validation after their own source/license review. NSL-KDD may be used only as a historical baseline.
 
 ## Dataset acceptance checklist
 
@@ -37,7 +37,7 @@ Review false positives and negatives by class, source/capture, time, asset/proto
 
 ## Train/serve parity
 
-One shared versioned transformation package produces ordered vectors. A feature dictionary defines type, unit, range, missing policy, source, relevance, and banned leakage fields. Golden samples must produce identical results in training and inference.
+One shared versioned transformation package produces ordered vectors. Feature schema v1 uses canonical flow v1 only: 17 direct values and 11 values for each inclusive 60/300-second event-time window. The machine-readable and analyst-readable dictionaries define order, type, unit, range, missing/unseen policy, source, relevance, and banned leakage fields. Reference and optimized transforms must match exactly; fitting vocabularies/statistics requires training partition evidence.
 
 ## Artifact safety and registry
 

@@ -35,6 +35,8 @@ Sprint 2 ingestion gates cover content/declared-source mismatch, filename indiff
 
 Sprint 3 fixtures cover positive, negative, boundary, malformed signature, duplicate, out-of-order, exclusion, and late-evidence cases for the three approved behavioral rules and Suricata signature path. Gates cover complete definition hashing, PostgreSQL definition immutability, lifecycle/rollback authorization and audit, fixed event-time buckets, signal/alert idempotency, Viewer redaction, evidence survival after flow cleanup, bounded live notification authentication, JSON-only Celery registration, migration downgrade/re-upgrade, and real-stack API → ingestion worker → detection worker → alert persistence.
 
+Sprint 4 fixtures cover direct features, exact 60/300-second boundaries, missing/unseen/zero values, duplicate/conflicting keys, out-of-order records, hostile scalar types, leakage fields, and schema incompatibility. Gates cover reference-versus-optimized parity, repeated-run byte/hash determinism, train-only vocabulary fitting, immutable schema/dataset/split metadata, Parquet path/hash/size/column integrity, 10,000-flow time/memory bounds, six-role negative authorization, CSRF/Origin, audited solo Security Administrator review, JSON-only Celery registration, 30-day cleanup, migration downgrade/re-upgrade, and isolated-stack health/worker processing.
+
 ## Release-blocking criteria
 
 Any Critical/High security finding, failing required test, broken RBAC, unsafe upload handling, leakage, incompatible artifact acceptance, missing audit, unsafe migration, real prevention capability/default, untested idempotency/expiry/rollback, or materially incomplete documentation blocks release.

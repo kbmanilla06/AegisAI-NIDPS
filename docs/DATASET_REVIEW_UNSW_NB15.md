@@ -1,5 +1,7 @@
 # UNSW-NB15 Official-Source Review
 
+The current detailed investigation is `docs/data/UNSW_NB15_OFFICIAL_SOURCE_REVIEW_2026-07-14.md`. Acquisition remains unauthorized, no file/checksum exists locally, and the raw approximately 100 GB PCAP is explicitly excluded.
+
 **Review date:** 2026-07-14
 **Download status:** Not downloaded
 **Official source:** https://research.unsw.edu.au/projects/unsw-nb15-dataset

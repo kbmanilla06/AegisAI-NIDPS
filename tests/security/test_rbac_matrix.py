@@ -14,6 +14,9 @@ READ_MATRIX = {
         "/api/v1/alerts": 200,
         "/api/v1/detection/metrics": 403,
         "/api/v1/detection/runs": 403,
+        "/api/v1/feature-schemas": 403,
+        "/api/v1/feature-jobs": 403,
+        "/api/v1/datasets": 403,
     },
     "SOC Analyst": {
         "/api/v1/assets": 200,
@@ -26,6 +29,9 @@ READ_MATRIX = {
         "/api/v1/alerts": 200,
         "/api/v1/detection/metrics": 200,
         "/api/v1/detection/runs": 200,
+        "/api/v1/feature-schemas": 200,
+        "/api/v1/feature-jobs": 200,
+        "/api/v1/datasets": 403,
     },
     "Senior Analyst": {
         "/api/v1/assets": 200,
@@ -38,6 +44,9 @@ READ_MATRIX = {
         "/api/v1/alerts": 200,
         "/api/v1/detection/metrics": 200,
         "/api/v1/detection/runs": 200,
+        "/api/v1/feature-schemas": 200,
+        "/api/v1/feature-jobs": 200,
+        "/api/v1/datasets": 200,
     },
     "Security Administrator": {
         "/api/v1/assets": 200,
@@ -50,6 +59,9 @@ READ_MATRIX = {
         "/api/v1/alerts": 200,
         "/api/v1/detection/metrics": 200,
         "/api/v1/detection/runs": 200,
+        "/api/v1/feature-schemas": 200,
+        "/api/v1/feature-jobs": 200,
+        "/api/v1/datasets": 200,
     },
     "System Administrator": {
         "/api/v1/assets": 200,
@@ -62,6 +74,9 @@ READ_MATRIX = {
         "/api/v1/alerts": 200,
         "/api/v1/detection/metrics": 200,
         "/api/v1/detection/runs": 200,
+        "/api/v1/feature-schemas": 200,
+        "/api/v1/feature-jobs": 200,
+        "/api/v1/datasets": 200,
     },
     "Auditor": {
         "/api/v1/assets": 200,
@@ -74,6 +89,9 @@ READ_MATRIX = {
         "/api/v1/alerts": 200,
         "/api/v1/detection/metrics": 200,
         "/api/v1/detection/runs": 200,
+        "/api/v1/feature-schemas": 200,
+        "/api/v1/feature-jobs": 200,
+        "/api/v1/datasets": 200,
     },
 }
 

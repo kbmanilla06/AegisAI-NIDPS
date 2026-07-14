@@ -56,6 +56,35 @@ type Alert = {
   first_seen: string;
   last_seen: string;
 };
+type FeatureDefinition = { name: string; dtype: string; unit: string; missing_policy: string };
+type FeatureSchema = {
+  id: string;
+  name: string;
+  version: string;
+  definition_hash: string;
+  lifecycle_state: string;
+  ordered_definition: { features?: FeatureDefinition[]; windows?: { seconds: number }[] };
+};
+type FeatureJob = {
+  id: string;
+  feature_schema_id: string;
+  ingestion_job_id: string;
+  status: string;
+  input_count: number;
+  output_count: number;
+  error_code: string | null;
+  artifact: { sha256: string; row_count: number; expires_at: string } | null;
+};
+type DatasetVersion = {
+  id: string;
+  name: string;
+  version: string;
+  publisher: string;
+  status: string;
+  citation_required: boolean;
+  commercial_approval_required: boolean;
+  acquisition_authorized: boolean;
+};
 
 export function App() {
   const [health, setHealth] = useState<Health | null>(null);
@@ -70,6 +99,9 @@ export function App() {
   const [rules, setRules] = useState<RuleVersion[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [liveAlerts, setLiveAlerts] = useState(false);
+  const [featureSchemas, setFeatureSchemas] = useState<FeatureSchema[]>([]);
+  const [featureJobs, setFeatureJobs] = useState<FeatureJob[]>([]);
+  const [datasets, setDatasets] = useState<DatasetVersion[]>([]);
 
   const can = (permission: string) => auth?.permissions.includes(permission) ?? false;
 
@@ -96,6 +128,13 @@ export function App() {
     }
     if (auth.permissions.includes("rules:read")) {
       void apiRequest<RuleVersion[]>("/rules").then(setRules);
+    }
+    if (auth.permissions.includes("features:read")) {
+      void apiRequest<FeatureSchema[]>("/feature-schemas").then(setFeatureSchemas);
+      void apiRequest<FeatureJob[]>("/feature-jobs").then(setFeatureJobs);
+    }
+    if (auth.permissions.includes("datasets:read")) {
+      void apiRequest<DatasetVersion[]>("/datasets").then(setDatasets);
     }
     if (auth.permissions.includes("alerts:read")) {
       const refresh = () => void apiRequest<Alert[]>("/alerts").then(setAlerts);
@@ -145,6 +184,9 @@ export function App() {
     setRules([]);
     setAlerts([]);
     setLiveAlerts(false);
+    setFeatureSchemas([]);
+    setFeatureJobs([]);
+    setDatasets([]);
   }
 
   async function createAsset(event: FormEvent<HTMLFormElement>) {
@@ -270,11 +312,29 @@ export function App() {
       : item));
   }
 
+  async function materializeFeatures(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const job = await apiRequest<FeatureJob>("/feature-jobs", {
+      method: "POST",
+      csrfToken,
+      headers: { "Idempotency-Key": crypto.randomUUID() },
+      body: JSON.stringify({
+        feature_schema_id: data.get("feature_schema_id"),
+        ingestion_job_id: data.get("ingestion_job_id"),
+        requested_limit: 10000,
+      }),
+    });
+    setFeatureJobs((current) => [job, ...current]);
+    form.reset();
+  }
+
   return (
     <main>
       <header>
         <div>
-          <p className="eyebrow">Sprint 3 deterministic detection</p>
+          <p className="eyebrow">Sprint 4 versioned feature pipeline</p>
           <h1>AegisAI NIDPS</h1>
         </div>
         <div className="status" role="status" aria-live="polite">
@@ -305,6 +365,48 @@ export function App() {
           {error && <p className="error" role="alert">{error}</p>}
 
           <div className="grid">
+            {can("features:read") && (
+              <section className="panel">
+                <h2>Feature engineering</h2>
+                <p>Metadata-only view. Raw endpoints, vectors, paths, labels, and dataset rows are never displayed.</p>
+                {featureSchemas.map((schema) => (
+                  <details key={schema.id}>
+                    <summary>{schema.name} v{schema.version} · {schema.lifecycle_state}</summary>
+                    <p>Windows: {(schema.ordered_definition.windows ?? []).map((window) => `${window.seconds}s`).join(", ")}</p>
+                    <ul>
+                      {(schema.ordered_definition.features ?? []).map((feature) => (
+                        <li key={feature.name}>{feature.name} · {feature.dtype} · {feature.unit} · {feature.missing_policy}</li>
+                      ))}
+                    </ul>
+                  </details>
+                ))}
+                <ul>
+                  {featureJobs.map((job) => (
+                    <li key={job.id}>
+                      {job.status} · rows {job.output_count}
+                      {job.artifact ? ` · SHA-256 ${job.artifact.sha256.slice(0, 12)}… · expires ${new Date(job.artifact.expires_at).toLocaleDateString()}` : ""}
+                      {job.error_code ? ` · ${job.error_code}` : ""}
+                    </li>
+                  ))}
+                </ul>
+                {can("features:materialize") && featureSchemas.length > 0 && ingestionJobs.some((job) => job.status === "succeeded") && (
+                  <form onSubmit={(event) => void materializeFeatures(event)}>
+                    <label>Approved feature schema<select name="feature_schema_id" required>{featureSchemas.filter((schema) => schema.lifecycle_state === "approved").map((schema) => <option key={schema.id} value={schema.id}>{schema.name} v{schema.version}</option>)}</select></label>
+                    <label>Completed ingestion job<select name="ingestion_job_id" required>{ingestionJobs.filter((job) => job.status === "succeeded").map((job) => <option key={job.id} value={job.id}>{job.source_type} · {job.id.slice(0, 8)}</option>)}</select></label>
+                    <button type="submit">Materialize bounded features</button>
+                  </form>
+                )}
+              </section>
+            )}
+
+            {can("datasets:read") && (
+              <section className="panel">
+                <h2>Dataset governance</h2>
+                <p>Investigation metadata only. Sprint 4 has no dataset download, preview, export, or model controls.</p>
+                <ul>{datasets.map((dataset) => <li key={dataset.id}>{dataset.name} · {dataset.version} · {dataset.status} · acquisition {dataset.acquisition_authorized ? "authorized" : "not authorized"}</li>)}</ul>
+              </section>
+            )}
+
             {can("alerts:read") && (
               <section className="panel">
                 <h2>Deterministic alerts</h2>

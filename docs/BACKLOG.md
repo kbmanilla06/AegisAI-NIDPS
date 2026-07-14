@@ -29,4 +29,6 @@ Sprint 1 identity/RBAC/assets/sensors/audit is complete, published as `61ef2cc9`
 
 Sprint 2 order: fixtures/schema → normalized adapter → Zeek → Suricata flow events → offline PCAP → storage/worker/idempotency → APIs/UI → migration/security/resource tests → documentation. **Status: complete and published on `main` at `29c2891f`; hosted CI Run #4 passed.**
 
-Sprint 3 deterministic detection was authorized on 2026-07-14 using the approved defaults in `docs/SPRINT_3_IMPLEMENTATION_PLAN.md`. Implementation and local verification are complete on `feature/sprint-3-detection` and remain uncommitted pending the Sprint 3 review/publication gate. No Sprint 4, dataset, model, live-capture, or real-prevention work is authorized.
+Sprint 3 deterministic detection was published on `main` as `b514aa3592487a65b8de8e1cfa14f4f9b80c5976`; hosted CI Run #5 (`29325828604`) passed all backend, frontend, and container jobs.
+
+Sprint 4 feature engineering and the versioned data-pipeline implementation are complete at the uncommitted review gate. The implementation includes the canonical flow v1 feature contract, deterministic direct and 60/300-second windows, controlled Parquet artifacts, metadata-only UNSW-NB15 source review, migrations, API/UI, worker, and tests. Dataset acquisition, model work, live capture, real prevention, commit, and publication remain unauthorized.

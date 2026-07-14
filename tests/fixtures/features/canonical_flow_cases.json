@@ -1,0 +1,60 @@
+{
+  "schema_version": "feature-fixtures/v1",
+  "valid": [
+    {
+      "schema_version": "1",
+      "source_type": "normalized",
+      "source_event_id": "golden-1",
+      "event_time": "2026-07-14T00:00:00Z",
+      "src_address": "192.0.2.10",
+      "dst_address": "198.51.100.20",
+      "src_port": 49152,
+      "dst_port": 443,
+      "protocol": "tcp",
+      "duration_ms": 1000,
+      "packet_count": 10,
+      "byte_count": 1000,
+      "state": "SF",
+      "metadata": {}
+    },
+    {
+      "schema_version": "1",
+      "source_type": "zeek",
+      "source_event_id": "golden-2",
+      "event_time": "2026-07-14T00:00:30Z",
+      "src_address": "192.0.2.10",
+      "dst_address": "198.51.100.21",
+      "src_port": 49153,
+      "dst_port": 22,
+      "protocol": "tcp",
+      "duration_ms": 0,
+      "packet_count": 0,
+      "byte_count": 0,
+      "state": "REJ",
+      "metadata": {}
+    },
+    {
+      "schema_version": "1",
+      "source_type": "suricata",
+      "source_event_id": "golden-3",
+      "event_time": "2026-07-14T00:05:00+00:00",
+      "src_address": "2001:db8::10",
+      "dst_address": "2001:db8::20",
+      "src_port": null,
+      "dst_port": null,
+      "protocol": "icmpv6",
+      "duration_ms": 5,
+      "packet_count": 1,
+      "byte_count": 128,
+      "state": null,
+      "metadata": {}
+    }
+  ],
+  "invalid": [
+    {"case": "wrong_schema", "schema_version": "2"},
+    {"case": "non_finite", "packet_count": "NaN"},
+    {"case": "unpaired_ports", "src_port": 12345, "dst_port": null},
+    {"case": "out_of_range", "duration_ms": 604800001},
+    {"case": "banned_label", "label": "attack"}
+  ]
+}

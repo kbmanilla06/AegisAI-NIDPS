@@ -223,6 +223,94 @@ class IngestionMetricsOut(BaseModel):
     failed_jobs: int
 
 
+class FeatureSchemaOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    version: str
+    input_schema: str
+    ordered_definition: dict[str, object]
+    preprocessing_config: dict[str, object]
+    banned_fields: list[str]
+    definition_hash: str
+    code_version: str
+    lifecycle_state: str
+    reviewed_by: UUID | None
+    reviewed_at: datetime | None
+    review_reason: str | None
+    created_at: datetime
+
+
+class FeatureSchemaReviewRequest(BaseModel):
+    approved: bool
+    reason: str = Field(min_length=10, max_length=500)
+    regression_evidence: str = Field(min_length=3, max_length=255)
+
+
+class FeatureJobCreate(BaseModel):
+    feature_schema_id: UUID
+    ingestion_job_id: UUID
+    requested_limit: int = Field(default=10_000, ge=1, le=10_000)
+
+
+class FeatureArtifactOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    media_type: str
+    sha256: str
+    size_bytes: int
+    row_count: int
+    column_count: int
+    source_snapshot_hash: str
+    retention_class: str
+    expires_at: datetime
+    status: str
+
+
+class FeatureJobOut(BaseModel):
+    id: UUID
+    feature_schema_id: UUID
+    ingestion_job_id: UUID
+    requested_limit: int
+    status: str
+    input_count: int
+    output_count: int
+    source_snapshot_hash: str | None
+    quality_summary: dict[str, object]
+    error_code: str | None
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+    artifact: FeatureArtifactOut | None = None
+
+
+class DatasetVersionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    version: str
+    official_source_url: str
+    publisher: str
+    intended_use: str
+    terms_reference_hash: str
+    citation_required: bool
+    commercial_approval_required: bool
+    acquisition_authorized: bool
+    manifest_hash: str
+    status: str
+    reviewed_by: UUID | None
+    reviewed_at: datetime | None
+    created_at: datetime
+
+
+class DatasetReviewRequest(BaseModel):
+    accepted: bool
+    reason: str = Field(min_length=10, max_length=500)
+
+
 class Severity(StrEnum):
     INFORMATIONAL = "informational"
     LOW = "low"

@@ -1,0 +1,17 @@
+{
+  "schema_version": "feature-window-fixtures/v1",
+  "rules": {
+    "order": ["event_time", "event_key"],
+    "windows_seconds": [60, 300],
+    "lower_bound": "inclusive",
+    "upper_bound": "inclusive_as_of_tuple"
+  },
+  "cases": [
+    {"name": "lower_boundary_60", "offset_seconds": -60, "included": true},
+    {"name": "before_lower_boundary_60", "offset_seconds": -61, "included": false},
+    {"name": "equal_time_lower_key", "offset_seconds": 0, "key_order": "before", "included": true},
+    {"name": "equal_time_higher_key", "offset_seconds": 0, "key_order": "after", "included": false},
+    {"name": "late_revision", "arrival_order": "after_materialization", "new_revision": true},
+    {"name": "duplicate_event_key", "copies": 2, "counted": 1}
+  ]
+}

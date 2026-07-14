@@ -1,0 +1,43 @@
+{
+  "contract": "feature-dictionary/v1",
+  "name": "flow_features",
+  "version": "1.0.0",
+  "input_schema": "1",
+  "order": [
+    "duration_ms", "packet_count", "byte_count", "src_port_present", "dst_port_present",
+    "src_port", "dst_port", "src_port_class", "dst_port_class", "protocol",
+    "connection_state", "bytes_per_packet", "packets_per_second", "bytes_per_second",
+    "zero_duration", "zero_packets", "rate_clipped",
+    "w60_flow_count", "w60_unique_dst_address_count", "w60_unique_dst_port_count",
+    "w60_packet_total", "w60_byte_total", "w60_failure_count", "w60_mean_duration_ms",
+    "w60_max_duration_ms", "w60_mean_bytes_per_flow", "w60_seconds_since_prior_service",
+    "w60_prior_service_missing",
+    "w300_flow_count", "w300_unique_dst_address_count", "w300_unique_dst_port_count",
+    "w300_packet_total", "w300_byte_total", "w300_failure_count", "w300_mean_duration_ms",
+    "w300_max_duration_ms", "w300_mean_bytes_per_flow", "w300_seconds_since_prior_service",
+    "w300_prior_service_missing"
+  ],
+  "windows": [
+    {"seconds": 60, "order": "event_time,event_key", "bounds": "inclusive-lower/inclusive-as-of-tuple"},
+    {"seconds": 300, "order": "event_time,event_key", "bounds": "inclusive-lower/inclusive-as-of-tuple"}
+  ],
+  "categorical_vocabularies": {
+    "protocol": ["__MISSING__", "__UNKNOWN__", "tcp", "udp", "icmp", "icmpv6", "gre", "esp"],
+    "connection_state": ["__MISSING__", "__UNKNOWN__", "REJ", "S0", "S1", "SF", "RSTO", "RSTR", "SH", "SHR", "OTH"],
+    "port_class": ["none", "well_known", "registered", "dynamic"]
+  },
+  "missing_policy": {
+    "required_numeric": "reject",
+    "absent_ports": "zero sentinel plus presence indicator",
+    "optional_category": "__MISSING__",
+    "unseen_category": "__UNKNOWN__",
+    "zero_denominator": "zero plus denominator indicator",
+    "non_finite": "reject",
+    "rate_above_1e12": "clip to 1e12 plus rate_clipped quality indicator"
+  },
+  "banned_fields": [
+    "label", "attack_cat", "row_id", "event_key", "source_event_id", "job_id", "sensor_id",
+    "src_address", "dst_address", "event_time", "alert", "rule_match", "severity", "risk",
+    "confidence", "incident", "prevention", "split", "source_filename"
+  ]
+}

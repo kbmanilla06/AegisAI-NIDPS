@@ -493,6 +493,165 @@ class AlertEvidence(Base):
     )
 
 
+class FeatureSchemaVersion(Base):
+    __tablename__ = "feature_schema_versions"
+    __table_args__ = (
+        UniqueConstraint("name", "version", name="uq_feature_schema_name_version"),
+        UniqueConstraint("definition_hash", name="uq_feature_schema_definition_hash"),
+        CheckConstraint(
+            "lifecycle_state IN ('draft','approved','retired')",
+            name="ck_feature_schema_lifecycle",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(64))
+    version: Mapped[str] = mapped_column(String(32))
+    input_schema: Mapped[str] = mapped_column(String(32))
+    ordered_definition: Mapped[dict[str, Any]] = mapped_column(JSON)
+    preprocessing_config: Mapped[dict[str, Any]] = mapped_column(JSON)
+    banned_fields: Mapped[list[str]] = mapped_column(JSON)
+    definition_hash: Mapped[str] = mapped_column(String(64))
+    code_version: Mapped[str] = mapped_column(String(64))
+    lifecycle_state: Mapped[str] = mapped_column(String(16), default="draft", index=True)
+    created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_reason: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class DatasetVersion(Base):
+    __tablename__ = "dataset_versions"
+    __table_args__ = (
+        UniqueConstraint("name", "version", name="uq_dataset_name_version"),
+        UniqueConstraint("manifest_hash", name="uq_dataset_manifest_hash"),
+        CheckConstraint("status IN ('proposed','accepted','retired')", name="ck_dataset_status"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(128))
+    version: Mapped[str] = mapped_column(String(64))
+    official_source_url: Mapped[str] = mapped_column(String(512))
+    publisher: Mapped[str] = mapped_column(String(128))
+    intended_use: Mapped[str] = mapped_column(String(64))
+    terms_reference_hash: Mapped[str] = mapped_column(String(64))
+    citation_required: Mapped[bool] = mapped_column(Boolean, default=True)
+    commercial_approval_required: Mapped[bool] = mapped_column(Boolean, default=True)
+    acquisition_authorized: Mapped[bool] = mapped_column(Boolean, default=False)
+    manifest: Mapped[dict[str, Any]] = mapped_column(JSON)
+    manifest_hash: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="proposed", index=True)
+    created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class DatasetSplitVersion(Base):
+    __tablename__ = "dataset_split_versions"
+    __table_args__ = (
+        UniqueConstraint("manifest_hash", name="uq_dataset_split_manifest_hash"),
+        CheckConstraint("train_count > 0", name="ck_dataset_split_train"),
+        CheckConstraint("validation_count > 0", name="ck_dataset_split_validation"),
+        CheckConstraint("test_count > 0", name="ck_dataset_split_test"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    dataset_version_id: Mapped[UUID] = mapped_column(
+        ForeignKey("dataset_versions.id", ondelete="RESTRICT"), index=True
+    )
+    strategy: Mapped[str] = mapped_column(String(32))
+    manifest: Mapped[dict[str, Any]] = mapped_column(JSON)
+    manifest_hash: Mapped[str] = mapped_column(String(64))
+    train_count: Mapped[int] = mapped_column(BigInteger)
+    validation_count: Mapped[int] = mapped_column(BigInteger)
+    test_count: Mapped[int] = mapped_column(BigInteger)
+    reviewed_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class FeatureMaterializationJob(Base):
+    __tablename__ = "feature_materialization_jobs"
+    __table_args__ = (
+        UniqueConstraint(
+            "requested_by", "idempotency_key", name="uq_feature_job_actor_idempotency"
+        ),
+        CheckConstraint(
+            "status IN ('pending','processing','succeeded','failed')",
+            name="ck_feature_job_status",
+        ),
+        CheckConstraint("requested_limit BETWEEN 1 AND 10000", name="ck_feature_job_limit"),
+        CheckConstraint("input_count >= 0", name="ck_feature_job_input_count"),
+        CheckConstraint("output_count >= 0", name="ck_feature_job_output_count"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    feature_schema_id: Mapped[UUID] = mapped_column(
+        ForeignKey("feature_schema_versions.id", ondelete="RESTRICT"), index=True
+    )
+    ingestion_job_id: Mapped[UUID] = mapped_column(
+        ForeignKey("ingestion_jobs.id", ondelete="RESTRICT"), index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    requested_limit: Mapped[int] = mapped_column(Integer, default=10_000)
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    input_count: Mapped[int] = mapped_column(Integer, default=0)
+    output_count: Mapped[int] = mapped_column(Integer, default=0)
+    source_snapshot_hash: Mapped[str | None] = mapped_column(String(64))
+    quality_summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class FeatureArtifact(Base):
+    __tablename__ = "feature_artifacts"
+    __table_args__ = (
+        UniqueConstraint("materialization_job_id", name="uq_feature_artifact_job"),
+        UniqueConstraint("object_ref", name="uq_feature_artifact_ref"),
+        CheckConstraint("size_bytes >= 0", name="ck_feature_artifact_size"),
+        CheckConstraint("row_count > 0", name="ck_feature_artifact_rows"),
+        CheckConstraint("column_count BETWEEN 1 AND 128", name="ck_feature_artifact_columns"),
+        CheckConstraint("status IN ('available','deleted')", name="ck_feature_artifact_status"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    materialization_job_id: Mapped[UUID] = mapped_column(
+        ForeignKey("feature_materialization_jobs.id", ondelete="RESTRICT"), index=True
+    )
+    feature_schema_id: Mapped[UUID] = mapped_column(
+        ForeignKey("feature_schema_versions.id", ondelete="RESTRICT"), index=True
+    )
+    object_ref: Mapped[str] = mapped_column(String(36))
+    media_type: Mapped[str] = mapped_column(String(64))
+    sha256: Mapped[str] = mapped_column(String(64))
+    size_bytes: Mapped[int] = mapped_column(BigInteger)
+    row_count: Mapped[int] = mapped_column(BigInteger)
+    column_count: Mapped[int] = mapped_column(Integer)
+    source_snapshot_hash: Mapped[str] = mapped_column(String(64))
+    code_version: Mapped[str] = mapped_column(String(64))
+    retention_class: Mapped[str] = mapped_column(String(32), default="feature_30d")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="available", index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 

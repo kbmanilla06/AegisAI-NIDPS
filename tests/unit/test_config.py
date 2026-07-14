@@ -20,6 +20,15 @@ def test_upload_retention_cannot_exceed_24_hours() -> None:
         Settings(_env_file=None, upload_retention_hours=25)
 
 
+def test_feature_retention_and_resource_caps_are_bounded() -> None:
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, feature_retention_days=31)
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, feature_max_flows=10_001)
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, feature_max_features=129)
+
+
 def test_comma_separated_origins_are_parsed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AEGIS_ALLOWED_ORIGINS", "http://localhost:5173, http://127.0.0.1:5173")
     settings = Settings(_env_file=None)

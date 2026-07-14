@@ -25,6 +25,9 @@
 | C-19 | Sprint 1 was published as `61ef2cc9e79dbd987debc226e4349bd3cb8571a5`; hosted CI Run #2 (`29312141925`) passed before Sprint 2 began. |
 | C-20 | Sprint 2 was published as `29c2891f1e6bfe6686d4ef6c2489932d2f0a2fcd`; hosted CI Run #4 passed before Sprint 3 planning. |
 | C-21 | The owner approved every recommended Sprint 3 default and authorized only the exact Section 31 implementation scope on 2026-07-14. |
+| C-22 | Sprint 3 was reviewed and published as `b514aa3592487a65b8de8e1cfa14f4f9b80c5976`; hosted CI Run #5 (`29325828604`) passed before Sprint 4 planning began. |
+| C-23 | The owner approved all recommended Sprint 4 defaults and authorized the Section 33 implementation scope on 2026-07-14. Canonical flow v1, direct plus 60/300-second features, controlled Parquet, 30-day feature-artifact retention, and solo Security Administrator review with complete audit are fixed Sprint 4 decisions. |
+| C-24 | Sprint 4 authorizes investigation of the official UNSW-NB15 source only. No dataset acquisition is authorized, and the approximately 100 GB raw PCAP is explicitly excluded. |
 
 ## Safe working assumptions
 
@@ -58,6 +61,9 @@
 | D-18 | Alert identity and evidence | `alert-fingerprint/v1`; exact reruns are no-ops, material late evidence creates a new signal in the same alert series, 100 evidence rows per alert with overflow count, evidence snapshots survive flow cleanup. |
 | D-19 | Sprint 3 bounded execution | 50 active rules, 5,000 groups, 10,000 signals, 1,000 alert mutations/run, 60/75-second Celery limits, two retries, 100 queued live notifications/client. |
 | D-20 | Sprint 3 semantics | No risk/confidence score, incident workflow, model/intelligence dependency, automatic disposition, or prevention action. Viewer endpoints are redacted; persisted REST state is authoritative over live notifications. |
+| D-21 | Sprint 4 feature contract | Immutable `feature-schema/v1` over canonical flow v1 only; 17 direct and 11 features for each of 60/300-second inclusive event-time windows; stable `(event_time,event_key)` ordering; identities remain provenance/grouping and never vector values. |
+| D-22 | Sprint 4 artifacts and governance | Zstandard-compressed Parquet on the controlled local artifact volume, SHA-256 and opaque PostgreSQL references, 30-day expiry, schema/dataset approval by Security Administrator only, and complete audit records. |
+| D-23 | Sprint 4 dataset boundary | Store metadata from the official UNSW-NB15 publisher investigation only. Acquisition, download, extraction, adaptation, and redistribution remain false/empty; raw UNSW-NB15 PCAP stays excluded. |
 ## Owner decisions deferred beyond scaffolding
 
 | ID | Decision | Why it blocks |

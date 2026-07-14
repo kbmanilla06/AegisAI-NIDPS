@@ -1,6 +1,6 @@
 # System Architecture
 
-**Status:** Approved; Sprint 1 identity, Sprint 2 ingestion, and Sprint 3 deterministic detection/alert boundaries implemented; later components remain proposed
+**Status:** Approved; Sprint 1 identity, Sprint 2 ingestion, Sprint 3 detection, and Sprint 4 feature/data-pipeline boundaries implemented; later components remain proposed
 
 ## Architectural style
 
@@ -26,8 +26,8 @@ flowchart LR
 |---|---|---|---|---|
 | Dashboard | Analyst/admin UI | REST and WebSocket | Shows bounded error/degraded state | CSP, encoding, accessibility, RBAC UX; server remains authority |
 | API | Auth, validation, orchestration, queries | HTTPS/JSON | Stable errors; no stack traces | Schemas, RBAC, rate limits, audit, correlation IDs |
-| Worker | Offline parsing, normalization, replay, deterministic detection, retention; later reports/inference | Queue job/run UUID; controlled DB/object references; canonical DB rows | Retry bounded/idempotent; safe failed state | Non-root/read-only, CPU/memory/PID/time/record/group/signal limits, replay/fuzz/rule tests |
-| Scheduler | Enqueue raw/flow retention work | Registered task names only | Missed cleanup is visible through expiry/metrics | JSON-only tasks, least privilege, bounded resources |
+| Worker | Offline parsing, normalization, replay, deterministic detection, feature materialization, retention; later reports/inference | Queue job/run UUID; controlled DB/object references; canonical DB rows | Retry bounded/idempotent; safe failed state | Non-root/read-only, CPU/memory/PID/time/record/group/signal/artifact limits, replay/fuzz/rule/parity tests |
+| Scheduler | Enqueue raw/flow/detection/feature retention and reconciliation work | Registered task names only | Missed cleanup is visible through expiry/metrics | JSON-only tasks, least privilege, bounded resources |
 | PostgreSQL | Authoritative transactional state | SQL | API fails closed for sensitive writes | Constraints, migrations, least privilege, backup plan |
 | Redis | Queue/cache/short-lived coordination | Bounded messages | Degraded async service; never authoritative | Authentication/network isolation, TTLs, queue limits |
 | Monitoring | Metrics/dashboards after later sprint | Scraped metrics | Does not control detections | No secrets/labels with excessive cardinality |
@@ -80,11 +80,13 @@ The API is the policy enforcement point. A centralized permission service evalua
 
 ## Messaging and idempotency
 
-Queue messages carry only an ingestion-job or detection-run UUID—not secrets, object paths, metadata, evidence, or payloads. Workers resolve authoritative rows from PostgreSQL, validate again, commit atomically, and use bounded retries. Poison work becomes a reviewable failed row with a sanitized code rather than retrying indefinitely.
+Queue messages carry only an ingestion-job, detection-run, or feature-job UUID—not secrets, object paths, metadata, evidence, vectors, or payloads. Workers resolve authoritative rows from PostgreSQL, validate again, commit atomically, and use bounded retries. Poison work becomes a reviewable failed row with a sanitized code rather than retrying indefinitely.
 
 The upload data path is: authenticated user/sensor → API body/rate/content cap → opaque `0700` artifact object plus SHA-256/DB job → JSON-only Celery UUID → strict adapter → canonical v1 validation → idempotency ledger and flow rows → immediate raw deletion. Replay reads previously normalized flows and never depends on retained raw bytes. Live interface capture is not an interface in Sprint 2.
 
 The Sprint 3 path is: successful ingestion → persisted run → JSON-only run UUID → bounded active immutable rule set plus canonical signatures → stable signals → versioned alert fingerprint/evidence → PostgreSQL commit → minimal Redis notification. Fixed event-time windows make evaluation deterministic. Exact reruns are no-ops; material late evidence remains append-oriented. WebSocket clients receive only IDs through bounded queues and fall back to REST polling.
+
+The Sprint 4 path is: successful ingestion job → authorized materialization request → persisted feature job → JSON-only UUID → approved immutable feature schema → canonical flows ordered by `(event_time,event_key)` → deterministic direct and 60/300-second features → atomic controlled Parquet plus SHA-256/shape/expiry metadata. PostgreSQL never stores raw vectors, the API/UI never expose paths or vector rows, and the scheduler expires feature artifacts after 30 days.
 
 ## Failure and degraded behavior
 

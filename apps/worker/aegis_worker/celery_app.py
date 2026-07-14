@@ -15,6 +15,12 @@ from aegis_api.detection_processor import (
     pending_detection_runs,
     process_detection_run,
 )
+from aegis_api.feature_processor import (
+    cleanup_feature_artifacts,
+    mark_feature_failed,
+    pending_feature_jobs,
+    process_feature_job,
+)
 from aegis_api.ingestion_processor import (
     cleanup_expired_flows,
     cleanup_expired_uploads,
@@ -39,6 +45,7 @@ celery_app.conf.update(
     task_routes={
         "aegis.ingestion.*": {"queue": "ingestion"},
         "aegis.detection.*": {"queue": "detection"},
+        "aegis.features.*": {"queue": "features"},
     },
     beat_schedule={
         "delete-expired-raw-uploads": {
@@ -55,6 +62,14 @@ celery_app.conf.update(
         },
         "delete-expired-detection-data": {
             "task": "aegis.detection.cleanup",
+            "schedule": 86400.0,
+        },
+        "reconcile-pending-feature-jobs": {
+            "task": "aegis.features.reconcile",
+            "schedule": 60.0,
+        },
+        "delete-expired-feature-artifacts": {
+            "task": "aegis.features.cleanup",
             "schedule": 86400.0,
         },
     },
@@ -207,6 +222,71 @@ def cleanup_detection() -> dict[str, int]:
     async def run() -> dict[str, int]:
         try:
             return await cleanup_detection_data(settings, SessionFactory)
+        finally:
+            await engine.dispose()
+
+    return asyncio.run(run())
+
+
+async def _run_feature_job(job_id: UUID) -> None:
+    try:
+        await process_feature_job(job_id, settings, SessionFactory)
+    finally:
+        await engine.dispose()
+
+
+async def _mark_feature_job_failed(job_id: UUID, error_code: str) -> None:
+    try:
+        await mark_feature_failed(job_id, error_code, SessionFactory)
+    finally:
+        await engine.dispose()
+
+
+@celery_app.task(
+    bind=True,
+    name="aegis.features.materialize",
+    max_retries=2,
+    soft_time_limit=settings.feature_soft_limit_seconds,
+    time_limit=settings.feature_hard_limit_seconds,
+)  # type: ignore[untyped-decorator]
+def materialize_features(task: Task, job_id: str) -> None:
+    """Materialize one persisted bounded job; the queue contains only its UUID."""
+    parsed_id = UUID(job_id)
+    try:
+        asyncio.run(_run_feature_job(parsed_id))
+    except Exception as error:
+        retries = int(task.request.retries)
+        if retries < int(task.max_retries or 0):
+            raise task.retry(exc=error, countdown=min(2 ** (retries + 1), 10)) from error
+        code = str(error) if str(error).startswith("feature_") else "feature_processing_failed"
+        try:
+            asyncio.run(_mark_feature_job_failed(parsed_id, code))
+        except Exception:
+            logger.exception(
+                "Unable to persist sanitized terminal failure for feature job %s", parsed_id
+            )
+        raise
+
+
+@celery_app.task(name="aegis.features.reconcile")  # type: ignore[untyped-decorator]
+def reconcile_feature_jobs() -> int:
+    async def run() -> list[UUID]:
+        try:
+            return await pending_feature_jobs(settings, SessionFactory)
+        finally:
+            await engine.dispose()
+
+    job_ids = asyncio.run(run())
+    for job_id in job_ids:
+        materialize_features.delay(str(job_id))
+    return len(job_ids)
+
+
+@celery_app.task(name="aegis.features.cleanup")  # type: ignore[untyped-decorator]
+def cleanup_features() -> int:
+    async def run() -> int:
+        try:
+            return await cleanup_feature_artifacts(settings, SessionFactory)
         finally:
             await engine.dispose()
 

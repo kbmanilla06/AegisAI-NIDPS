@@ -5,13 +5,19 @@
 **Branch:** `feature/sprint-3-detection`
 
 **Authorized base:** `29c2891f1e6bfe6686d4ef6c2489932d2f0a2fcd`
-**Status:** Locally complete and uncommitted; awaiting Sprint 3 review/publication authorization
+**Status:** Approved, published on `main`, and verified by hosted CI
 
 ## Entry gate
 
 Local `HEAD` and published `origin/main` were confirmed at final Sprint 2 commit `29c2891f1e6bfe6686d4ef6c2489932d2f0a2fcd`. Hosted CI Run #4 was confirmed successful for that baseline. The working tree contained only the owner-approved, untracked `docs/SPRINT_3_IMPLEMENTATION_PLAN.md`. A new branch, `feature/sprint-3-detection`, was created without rewriting history. The governing documents and the full Sprint 3 plan were read before implementation.
 
-Sprint 2 publication status was corrected in the completion report, backlog, and deployment strategy before feature work. No commit or publication has been performed.
+Sprint 2 publication status was corrected in the completion report, backlog, and deployment strategy before feature work. At that local completion gate, no Sprint 3 commit or publication had yet been performed.
+
+## Publication gate
+
+The complete Sprint 3 diff received a separate security, correctness, privacy, migration, rule-lifecycle, deterministic-window, signature-normalization, provenance, fingerprint, idempotency, late-evidence, suppression/flood-limit, Celery, retention, WebSocket, and authorization review. Review corrections covered concurrent first-alert aggregation, concurrent first activation, the 30-day transient detection-retention boundary, periodic WebSocket reauthorization, and rule-review audit provenance. No unresolved Critical or High issue remained.
+
+The reviewed implementation was committed once as `b514aa3592487a65b8de8e1cfa14f4f9b80c5976` (`feat: implement Sprint 3 deterministic detection`) and pushed to public `main`. GitHub Actions Run #5 (`29325828604`) completed successfully for that exact SHA on its first attempt. The backend, frontend, and container jobs all passed; no CI correction commit was required. Public `main` and the clean local `HEAD` were reverified at the published SHA before Sprint 4 planning.
 
 ## Scope delivered
 
@@ -183,7 +189,7 @@ One upstream Starlette test-harness deprecation warning remains (`httpx`-backed 
 - Initial localhost health and npm-audit calls were blocked by sandbox DNS/network isolation. The required checks were immediately rerun with approved localhost/registry access and passed.
 - The first end-to-end run-status list URL returned 404 because only UUID lookup existed. A bounded discoverable list/filter API and regression tests were added.
 - Semgrep, Trivy/container CVE scanning, SBOM generation, OWASP ZAP, browser-driven accessibility/E2E automation, coverage-guided long-running fuzzing, representative multi-worker/load/soak testing, backup/restore, and non-local TLS were not configured Sprint 3 gates and were not run. They are residual hardening, not passes.
-- Hosted CI was not run because commit/publication is explicitly not authorized at this gate.
+- The original local completion gate intentionally did not run hosted CI. The separately authorized publication gate subsequently completed successfully as Run #5 for the final Sprint 3 commit.
 
 ## Assumptions
 
@@ -226,11 +232,11 @@ One upstream Starlette test-harness deprecation warning remains (`httpx`-backed 
 | Simulation-only/no prohibited capability | Pass |
 | Documentation and completion report current | Pass |
 | No unresolved Critical or High issue | Pass after correction |
-| Owner review, commit, publication, hosted CI | Pending separate authorization |
+| Owner review, commit, publication, hosted CI | Pass; `b514aa3`, Run #5 |
 
 ## Final Sprint 3 decision
 
-**CONDITIONALLY APPROVED.** The uncommitted Sprint 3 implementation satisfies the authorized local completion gate with no known unresolved Critical or High issue. Final approval is conditional only on the separately authorized review/publication gate and successful hosted CI. Sprint 4 remains unauthorized.
+**APPROVED.** Sprint 3 is published on public `main` at `b514aa3592487a65b8de8e1cfa14f4f9b80c5976`, hosted CI Run #5 passed, and no known unresolved Critical or High issue remains. This approval does not authorize Sprint 4 implementation, dataset acquisition, model work, live capture, or real prevention.
 
 ## Exact Sprint 3 review/publication prompt
 

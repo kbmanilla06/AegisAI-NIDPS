@@ -9,14 +9,16 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from aegis_api.config import Settings, get_settings
 from aegis_api.database import get_db
+from aegis_api.feature_dispatch import get_feature_dispatcher
 from aegis_api.ingestion_dispatch import get_ingestion_dispatcher
 from aegis_api.ingestion_throttle import get_ingestion_throttle
 from aegis_api.main import create_app
-from aegis_api.models import Base, Permission, Role, RuleVersion, User
+from aegis_api.models import Base, FeatureSchemaVersion, Permission, Role, RuleVersion, User
 from aegis_api.security.passwords import password_service
 from aegis_api.security.permissions import ROLE_PERMISSION_MATRIX
 from aegis_api.security.throttle import LoginThrottle, get_login_throttle
 from aegis_services.detection import DEFAULT_RULES, canonical_hash
+from aegis_services.features import feature_schema
 
 ORIGIN = "http://localhost:5173"
 PASSWORD = "correct-horse-battery-staple"  # noqa: S105  # nosec B105 - test fixture
@@ -33,6 +35,7 @@ class AppHarness:
     session_factory: async_sessionmaker[AsyncSession]
     artifact_root: Path
     dispatched_jobs: list[str]
+    dispatched_feature_jobs: list[str]
 
     def run(self, operation):  # type: ignore[no-untyped-def]
         async def execute():  # type: ignore[no-untyped-def]
@@ -112,6 +115,26 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
                         is_active=True,
                     )
                 )
+            schema = feature_schema(code_version="sprint4-test")
+            db.add(
+                FeatureSchemaVersion(
+                    name=schema.name,
+                    version=schema.version,
+                    input_schema=schema.input_schema,
+                    ordered_definition=schema.model_dump(mode="json"),
+                    preprocessing_config={
+                        "missing_token": schema.missing_token,
+                        "unknown_token": schema.unknown_token,
+                        "numeric_dtype": schema.numeric_dtype,
+                        "fit_partition": "training_only",
+                    },
+                    banned_fields=list(schema.banned_fields),
+                    definition_hash=schema.definition_hash,
+                    code_version=schema.code_version,
+                    lifecycle_state="approved",
+                    review_reason="Owner-approved Sprint 4 test schema.",
+                )
+            )
             await db.commit()
 
     asyncio.run(prepare())
@@ -139,7 +162,15 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
     app.dependency_overrides[get_login_throttle] = lambda: throttle
     app.dependency_overrides[get_ingestion_throttle] = lambda: throttle
     dispatched_jobs: list[str] = []
+    dispatched_feature_jobs: list[str] = []
     app.dependency_overrides[get_ingestion_dispatcher] = lambda: dispatched_jobs.append
+    app.dependency_overrides[get_feature_dispatcher] = lambda: dispatched_feature_jobs.append
     with TestClient(app, base_url="https://testserver") as client:
-        yield AppHarness(client, session_factory, artifact_root, dispatched_jobs)
+        yield AppHarness(
+            client,
+            session_factory,
+            artifact_root,
+            dispatched_jobs,
+            dispatched_feature_jobs,
+        )
     asyncio.run(test_engine.dispose())

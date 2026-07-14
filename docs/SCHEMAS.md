@@ -1,6 +1,6 @@
 # Canonical Contract Schemas
 
-**Status:** Canonical flow v1 and Sprint 3 signature/rule/signal/alert contracts implemented; later ML, assessment, incident, and prevention contracts remain conceptual
+**Status:** Canonical flow v1, Sprint 3 detection, and Sprint 4 feature/dataset manifest contracts implemented; later model, assessment, incident, and prevention contracts remain conceptual
 
 ## Common envelope
 
@@ -33,11 +33,15 @@ Payload bytes, filenames, MIME declarations, labels, detection results, and inte
 - Suricata EVE handles event shapes explicitly. `event_type=flow` maps to canonical flow v1. `event_type=alert` maps to canonical signature event v1. Other event types are controlled rejections and are never coerced into a uniform record.
 - PCAP/PCAPNG is parsed offline and aggregated by directional packet tuple into bounded flow metadata. Packet payload content is never persisted.
 
-## Feature vector v1
+## Feature and dataset contracts v1
 
-Required: flow/window identity, event cutoff time, ordered feature schema version/hash, preprocessing version, numeric/categorical encoded values, missingness indicators where defined. Labels are stored only in training examples outside the serving vector.
+`FeatureSchemaV1` is immutable and strict. It fixes canonical input schema `1`, 39 ordered features, 60/300-second event-time windows, vocabularies, missing/unseen policy, leakage denylist, code version, and a canonical SHA-256 definition hash. Any semantic/order/window/vocabulary change requires a new schema version.
 
-Candidate feature groups: duration, protocol/ports, forward/backward packet/byte counts, packet-size/inter-arrival statistics, TCP state/flags, rates, direction ratios, connection failure/frequency/burst windows, and privacy-limited DNS/HTTP/TLS metadata.
+`FeatureVectorV1` contains schema hash, input event key as provenance, cutoff, source snapshot hash, ordered typed values, quality flags, vector hash, and creation provenance. Raw endpoint identities, timestamps, sensor/job IDs, labels, alerts, rule results, and dataset partition fields never enter `values`.
+
+`DatasetManifestV1`, `SplitManifestV1`, `VocabularyManifestV1`, and `PreprocessorManifestV1` reject unknown fields and bind source terms, files/hashes, split/grouping strategy, train-only fitting evidence, and feature-schema compatibility. Sprint 4 has no accepted dataset, split, fitted production preprocessor, model, or prediction.
+
+The authoritative feature order and semantics are in `docs/features/FEATURE_DICTIONARY_V1.json` and its analyst-readable Markdown companion.
 
 ## Canonical signature event v1
 

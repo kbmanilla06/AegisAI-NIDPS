@@ -590,7 +590,7 @@ async def alert_stream(websocket: WebSocket) -> None:
                 timeout=WEBSOCKET_AUTH_RECHECK_SECONDS,
                 return_when=asyncio.FIRST_COMPLETED,
             )
-            if loop.time() >= next_authorization_check:
+            if not done or loop.time() >= next_authorization_check:
                 if not await _websocket_authorized(websocket, settings, session_factory):
                     get_next.cancel()
                     await websocket.close(code=4403)

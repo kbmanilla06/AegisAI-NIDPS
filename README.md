@@ -1,11 +1,11 @@
 # AegisAI NIDPS
 
-A defensive, portfolio-oriented network intrusion detection platform. Sprint 3 adds versioned deterministic behavioral rules, strict Suricata signature normalization, idempotent signals/alerts, redacted evidence APIs, and bounded live notifications on top of the Sprint 1 identity/RBAC and Sprint 2 hostile-input ingestion foundations. Sprint 3 is complete locally and remains uncommitted pending review.
+A defensive, portfolio-oriented network intrusion detection platform. Sprint 4 adds an immutable canonical-flow feature contract, deterministic direct and 60/300-second window transforms, controlled Parquet artifacts, dataset-governance metadata, bounded Celery materialization, and minimal APIs/UI on top of the published Sprint 3 baseline. Sprint 4 is at the uncommitted review gate; Sprint 3 remains published at `b514aa3` with hosted CI Run #5 passing.
 
 ## Safety status
 
 - Prevention is compile/configuration constrained to `simulation`.
-- There is no firewall adapter, live capture, model loader, dataset, privileged container, host networking, or automatic blocking.
+- There is no firewall adapter, live capture, model loader, downloaded dataset, privileged container, host networking, or automatic blocking.
 - Use only synthetic, public, locally owned, or explicitly authorized telemetry.
 - Supported offline inputs are canonical normalized JSONL, Zeek connection logs, Suricata EVE flow/signature events, and PCAP/PCAPNG files. Live interface capture is absent.
 - The initially active deterministic rules are port-scan indication, recognized Zeek connection failures, and high connection rate. They produce reviewable evidence, never enforcement.
@@ -26,7 +26,7 @@ A defensive, portfolio-oriented network intrusion detection platform. Sprint 3 a
 6. Open `http://localhost:5173` and check `http://localhost:8000/api/v1/health/ready`.
 7. Stop with `docker compose down`. Add `--volumes` only when intentionally deleting local development data.
 
-Do not commit `.env`. Uploads are capped at 8 MiB and deleted after successful processing or within 24 hours. Flow/signature source metadata is retained for 30 days; alerts/audit are retained for 180 days. Dataset acquisition is not part of Sprint 3; UNSW-NB15 terms are documented in `docs/DATASET_REVIEW_UNSW_NB15.md`.
+Do not commit `.env`. Uploads are capped at 8 MiB and deleted after successful processing or within 24 hours. Flow/signature source metadata and feature artifacts are retained for 30 days; alerts/audit are retained for 180 days. UNSW-NB15 was investigated from the official publisher page only; no dataset was downloaded and its raw PCAP is excluded.
 
 ## Checks
 
@@ -34,4 +34,4 @@ Backend checks run through `make backend-check`; frontend checks run through `ma
 
 ## Documentation
 
-Start with `docs/PRD.md`, `docs/architecture/ARCHITECTURE.md`, `docs/threat-model/THREAT_MODEL.md`, `docs/SPRINT_3_IMPLEMENTATION_PLAN.md`, and `docs/SPRINT_3_COMPLETION_REPORT.md`.
+Start with `docs/PRD.md`, `docs/architecture/ARCHITECTURE.md`, `docs/threat-model/THREAT_MODEL.md`, `docs/SPRINT_4_IMPLEMENTATION_PLAN.md`, and `docs/SPRINT_4_COMPLETION_REPORT.md`.
