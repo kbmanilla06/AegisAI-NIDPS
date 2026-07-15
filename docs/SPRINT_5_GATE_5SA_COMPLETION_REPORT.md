@@ -4,6 +4,7 @@
 **State:** implementation reviewed and verified locally; publication gate authorized; exact-hash owner acceptance remains pending
 **Published baseline:** `72c97b15f9bb31ddb6810a397afc682893497bab`
 **Branch:** `codex/sprint-5a-pre-acquisition`
+**Reviewed checkpoint:** `10adec76fa62d41f57658749ac6215eca103049c` on public `main`; hosted CI Run #8 (`29381468674`) passed
 **Decision:** **CONDITIONALLY APPROVED — STOP AT GATE 5S-A**
 
 ## 1. Outcome
@@ -211,7 +212,7 @@ two independent ephemeral synthetic generation/artifact runs
 - Two evidence scripts initially used an unavailable unmounted package and then a wrong field name; neither changed files or retained artifacts. The corrected evidence runs passed and were independently reproduced.
 - Trivy/container CVE scanning and a retained SBOM were not run because Trivy/Syft are not installed and these are configured as Gate 5S-B requirements when ONNX/native ML dependencies enter scope. Docker Compose build, pip-audit, npm audit, pinned base-image digest review, and container security inspection passed. This is not treated as a Gate 5S-A pass for Trivy.
 - Full browser automation, ZAP, representative load/fault-kill testing, and independent-human review are not configured. Component accessibility assertions and clean-stack HTTP checks passed. These are residual hardening items, not claims of completion.
-- Hosted CI is pending the authorized publication step recorded in Section 17.
+- Hosted CI Run #8 (`29381468674`) passed backend, frontend, and container jobs for reviewed checkpoint `10adec76fa62d41f57658749ac6215eca103049c`.
 
 ## 13. Assumptions and residual risks
 
@@ -294,7 +295,7 @@ Confirmed publication boundaries:
 
 Publication evidence:
 
-- Reviewed checkpoint commit: pending commit creation.
-- Public branch: pending push to `main`.
-- Hosted CI: pending.
+- Reviewed checkpoint commit: `10adec76fa62d41f57658749ac6215eca103049c`.
+- Public branch: checkpoint published to `main`.
+- Hosted CI: Run #8 (`29381468674`) completed successfully for the exact checkpoint SHA; backend, frontend, and container jobs all passed.
 - Gate 5S-B: unauthorized and blocked pending explicit owner acceptance of every Section 7 hash.
