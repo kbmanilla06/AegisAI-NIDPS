@@ -1,8 +1,10 @@
-# AegisAI NIDPS Sprint 6 Completion Report (Uncommitted Gate 6C)
+# AegisAI NIDPS Sprint 6 Completion Report (Published Gate 6C)
 
-Status: **READY FOR SEPARATE REVIEW — UNCOMMITTED**
-Decision: **CONDITIONALLY COMPLETE at Gate 6C; publication and activation are not authorized**
+Status: **APPROVED — PUBLISHED**
+Decision: **APPROVED at Gate 6C; activation and online inference remain unauthorized**
 Baseline: public Gate 5S-C `9cc643dba4a9d15284eb1a812bf661f848a801ce`; hosted CI Run #12 passed.
+Final commit: `e11f10398776ea0e348e4e2e2adc07a184759be9` on public `main`.
+Hosted CI: Run **#13**, [completed successfully](https://github.com/kbmanilla06/AegisAI-NIDPS/actions/runs/29397915436).
 
 ## Scope and safety boundary
 
@@ -70,8 +72,8 @@ Gate 6B hashes:
 
 Gate 6A anomaly evidence: **satisfied**.
 Gate 6B transparent fusion evidence: **satisfied**.
-Gate 6C completion review: **pending owner review of this uncommitted diff and the exact hashes above**.
-Publication, model registry activation, online inference, real data, and prevention: **not authorized and not implemented**.
+Gate 6C completion review: **approved and published**.
+Publication is complete; model registry activation, online inference, real data, and prevention remain **not authorized and not implemented**.
 
 ## Residual risks and assumptions
 
