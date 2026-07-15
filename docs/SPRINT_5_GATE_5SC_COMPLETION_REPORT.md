@@ -1,6 +1,8 @@
 # Sprint 5 Gate 5S-C Completion Report
 
-**Status:** UNCOMMITTED — Gate 5S-C implementation complete; publication and any later sprint remain unauthorized.
+**Status:** PUBLISHED — Gate 5S-C implementation is on public `main`; no later sprint is authorized.
+
+**Publication:** Implementation commit `445b75009b6021da5020cce788e54082208a129e`; CI-only dashboard stabilization commit `38fb0eda30c545de57d6d5c84399e93435982174`. Hosted CI Run #11 passed: https://github.com/kbmanilla06/AegisAI-NIDPS/actions/runs/29392922330.
 
 ## Scope and owner boundary
 
@@ -48,7 +50,7 @@ The registry is synthetic-demo-only and cannot become the general supervised mod
 
 ## Acceptance status
 
-Gate 5S-C is complete at the uncommitted gate. No commit or publication was performed. Separate owner review is required before any publication, and no online inference or activation authorization is implied.
+Gate 5S-C publication is complete after review. No online inference or activation authorization is implied. The CI-only follow-up changed only a dashboard test wait condition; no production behavior changed.
 
 ## Exact next prompt
 
