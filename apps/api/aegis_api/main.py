@@ -10,7 +10,17 @@ from aegis_api.dependencies import postgres_check, redis_check
 from aegis_api.errors import install_error_handlers
 from aegis_api.health import HealthChecks, create_health_router
 from aegis_api.middleware import install_correlation_middleware
-from aegis_api.routers import assets, audit, auth, detection, features, ingestion, sensors, users
+from aegis_api.routers import (
+    assets,
+    audit,
+    auth,
+    detection,
+    features,
+    ingestion,
+    sensors,
+    synthetic,
+    users,
+)
 
 
 @asynccontextmanager
@@ -23,8 +33,8 @@ def create_app(settings_override: Settings | None = None) -> FastAPI:
     settings = settings_override or get_settings()
     app = FastAPI(
         title="AegisAI NIDPS API",
-        version="0.5.0",
-        description="Sprint 4 versioned feature pipeline. Prevention is simulation-only.",
+        version="0.6.0",
+        description="Sprint 5 Gate 5S-A synthetic-only evidence. Prevention is simulation-only.",
         lifespan=lifespan,
     )
     app.state.settings = settings
@@ -52,6 +62,7 @@ def create_app(settings_override: Settings | None = None) -> FastAPI:
     app.include_router(ingestion.router)
     app.include_router(detection.router)
     app.include_router(features.router)
+    app.include_router(synthetic.router)
     app.include_router(detection.ws_router)
     return app
 

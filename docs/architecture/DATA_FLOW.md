@@ -63,6 +63,39 @@ Ground-truth labels never enter inference features. Activation is audited; rollb
 
 No training path is active yet. Sprint 4 implements only canonical flow v1 → approved immutable feature schema → ordered direct and 60/300-second event-time transforms → atomic controlled Parquet. PostgreSQL stores the source snapshot, schema/artifact hashes, row/column counts, safe quality summary, and 30-day expiry. Raw identities are context/provenance only; labels and detection outputs are prohibited vector inputs.
 
+### Implemented Sprint 5 pre-acquisition boundary
+
+```mermaid
+flowchart LR
+  P["Official publisher page"] --> R["Metadata and terms review"]
+  R --> B["Authentication blocker"]
+  R --> C["Strict proposed manifest contract"]
+  C --> D["Append-only PostgreSQL proposal + audit"]
+  D -. "separate exact owner approval required" .-> T["Bounded transfer orchestrator"]
+  T -. "no concrete transport/task enabled" .-> X["No dataset bytes"]
+```
+
+The proposal interface accepts only exact query-free HTTPS objects on a server-side host allowlist. It cannot change state beyond `proposed`. Dataset download, parsing, mapping, split construction, preprocessing, and model work remain absent.
+
+### Implemented Sprint 5 Gate 5S-A synthetic boundary
+
+```mermaid
+flowchart LR
+  A["System Administrator"] --> J["Persisted generation job + audit"]
+  J --> Q["JSON-only UUID"]
+  Q --> G["Closed deterministic generator"]
+  G --> C["Canonical flow v1"]
+  C --> F["Existing Sprint 4 feature pipeline"]
+  F --> X["39 features + 7 provenance columns"]
+  G --> T["Separate synthetic target sidecar"]
+  X --> E["Immutable split/quality/leakage evidence"]
+  T --> E
+  E --> R["Distinct Security Administrator exact-hash review"]
+  E -. "sealed" .-> S["Test partition; no model access"]
+```
+
+Every address is from documentation-only ranges. Generation performs zero network requests and produces no packets, payloads, PCAPs, credentials, URLs, or official-dataset emulation. Artifacts expire after 30 days and cannot be accessed through an API/UI row or path surface.
+
 ## DF-04 Analyst investigation
 
 Browser requests are authenticated and authorized at the API. The API loads redacted alert, evidence, explanation, and history. State changes pass a server-side transition check, optimistic concurrency/version check, and audit write. WebSocket messages contain minimal identifiers and summaries; clients fetch authorized detail.
@@ -107,5 +140,6 @@ Invariant: no firewall binary, socket, API credential, privileged container, or 
 - Alerts/incidents/audit: 180 days in development or until portfolio evidence is exported.
 - Failed job details: 30 days, without raw secrets/payloads.
 - Dataset manifests are retained by version; raw datasets remain outside Git. Controlled feature artifacts expire after 30 days.
+- Synthetic Gate 5S-A canonical-flow, target, and feature artifacts expire after 30 days; immutable manifests, hashes, aggregate reports, and audit remain governance evidence.
 
 The approved development periods are: flows 30 days; feature artifacts 30 days; alerts, incidents, analyst notes, and audit records 180 days; generated reports and stored predictions 30 days. Exceptional investigation holds are disabled for the MVP.

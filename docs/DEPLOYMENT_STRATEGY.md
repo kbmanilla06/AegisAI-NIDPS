@@ -1,12 +1,14 @@
 # Local Development and Deployment Strategy
 
-**Status:** Sprint 4 feature/data-pipeline implementation at the uncommitted review gate; Sprint 3 baseline `b514aa3` and hosted CI Run #5 passed
+**Status:** Sprint 5 Phase 5A pre-acquisition gate on branch `codex/sprint-5a-pre-acquisition`; Sprint 4 baseline `72c97b15f9bb31ddb6810a397afc682893497bab` and hosted CI Run #7 passed
 
 ## MVP topology
 
 Docker Compose runs a React/Vite dashboard, FastAPI API, Celery worker, Celery Beat scheduler, PostgreSQL, and Redis. PostgreSQL and Redis are isolated on the internal data network; the API and dashboard bind only to localhost. Uploaded files use a controlled named volume outside Git under opaque generated references; PostgreSQL stores the reference, SHA-256, detected media type, byte size, and expiry. Raw data is removed after successful processing or by 24 hours, and normalized flows are removed after 30 days. No model loader exists.
 
 Celery accepts JSON-serialized task envelopes containing only a bounded job/run UUID; pickle serialization and untrusted object deserialization are disabled. Ingestion uses 120/135-second soft/hard limits; deterministic detection uses 60/75 seconds; feature materialization uses 120/135 seconds with 10,000 input-flow and 64 MiB output caps. Tasks use late acknowledgment, one-message prefetch, and bounded retries. Beat schedules raw, flow, detection, feature-artifact, and orphan-job cleanup/reconciliation. Redis carries work and minimal live notifications but is never authoritative state.
+
+Sprint 5 pre-acquisition adds strict proposal contracts, append-only proposal metadata, safe RBAC/audit APIs, and an injected bounded transfer orchestrator. No concrete HTTP transport, dataset transfer Celery task, download API, model runtime, or new exposed service exists. A later exact file authorization must preserve the 5 GiB combined/2 GiB file/10 file/5 redirect/30-120 second timeout/30 minute deadline/two retry/50 GiB reserve/no-archive limits.
 
 ## Environment separation
 
@@ -49,4 +51,8 @@ Sprint 4 verification uses disposable Compose project `aegis-sprint4-test`. Migr
 
 ## Deferred decisions
 
-Safe model serialization must be approved before Sprint 5. TLS termination for any non-local demo, dependency update policy, and backup location are operational decisions for their owning sprints. They do not authorize exposing the current development stack beyond localhost.
+D-13 approves ONNX plus canonical JSON in principle, but exact operator/opset/runtime/native-dependency policy remains blocked until Gate 5S-B review. TLS termination for any non-local demo, dependency update policy, and backup location are operational decisions for their owning sprints. They do not authorize exposing the current development stack beyond localhost.
+
+## Gate 5S-A verification profile
+
+Disposable Compose project `aegisgate5sa` verified migration `0006_sprint5_synthetic_gate` through fresh upgrade, downgrade to `0005`, and re-upgrade. PostgreSQL, Redis, API, worker, scheduler, and dashboard reached healthy state; API liveness/readiness and Celery ping passed. API/worker were non-privileged, read-only, `cap_drop=ALL`, without host networking; worker limits were 384 MiB, 0.75 CPU, and 128 PIDs. The controlled `synthetic` volume path is created mode `0700`, and generated objects are mode `0600`. Exact results are in `docs/SPRINT_5_GATE_5SA_COMPLETION_REPORT.md`.

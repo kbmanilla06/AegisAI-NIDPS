@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from aegis_services.synthetic import SYNTHETIC_LIMITATIONS
+
 
 class RoleOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -309,6 +311,101 @@ class DatasetVersionOut(BaseModel):
 class DatasetReviewRequest(BaseModel):
     accepted: bool
     reason: str = Field(min_length=10, max_length=500)
+
+
+class DatasetAcquisitionPlanOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    dataset_name: str
+    dataset_version: str
+    official_page_url: str
+    source_review_hash: str
+    terms_reference_hash: str
+    manifest_hash: str
+    state: str
+    combined_byte_limit: int
+    file_byte_limit: int
+    file_count_limit: int
+    raw_retention_days: int
+    created_by: UUID
+    created_at: datetime
+
+
+class SyntheticGenerationCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    feature_schema_id: UUID
+
+
+class SyntheticGenerationJobOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    feature_schema_id: UUID
+    scenario_catalog_hash: str
+    global_seed: int
+    requested_flow_count: int
+    status: str
+    generated_flow_count: int
+    generated_group_count: int
+    error_code: str | None
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+    limitations: str = SYNTHETIC_LIMITATIONS
+    synthetic_demo_only: bool = True
+    real_dataset_used: bool = False
+    unsw_nb15_acquired: bool = False
+    unsw_nb15_evaluated: bool = False
+    network_traffic_generated: bool = False
+    online_inference_allowed: bool = False
+    alert_side_effects_allowed: bool = False
+    prevention_allowed: bool = False
+
+
+class SyntheticDatasetOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    generation_job_id: UUID
+    feature_schema_id: UUID
+    name: str
+    version: str
+    manifest_hash: str
+    target_manifest_hash: str
+    split_manifest_hash: str
+    quality_report_hash: str
+    leakage_report_hash: str
+    flow_count: int
+    group_count: int
+    feature_column_count: int
+    lifecycle_state: str
+    quality_report: dict[str, object]
+    leakage_report: dict[str, object]
+    reviewed_by: UUID | None
+    reviewed_at: datetime | None
+    review_reason: str | None
+    expires_at: datetime
+    artifacts_deleted_at: datetime | None
+    created_at: datetime
+    limitations: str = SYNTHETIC_LIMITATIONS
+    synthetic_demo_only: bool = True
+    real_dataset_used: bool = False
+    unsw_nb15_acquired: bool = False
+    unsw_nb15_evaluated: bool = False
+    network_traffic_generated: bool = False
+    online_inference_allowed: bool = False
+    alert_side_effects_allowed: bool = False
+    prevention_allowed: bool = False
+
+
+class SyntheticDatasetReviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    accepted: bool
+    reason: str = Field(min_length=10, max_length=500)
+    evidence_reference: str = Field(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
 
 
 class Severity(StrEnum):

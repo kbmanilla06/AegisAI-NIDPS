@@ -3,8 +3,9 @@
 **Completion date:** 2026-07-14
 **Baseline:** public `main` at `b514aa3592487a65b8de8e1cfa14f4f9b80c5976`; hosted CI Run #5 (`29325828604`) passed
 **Branch:** `feature/sprint-4-features`
-**Gate:** Independent uncommitted review complete; publication and hosted CI authorized
-**Decision:** APPROVED FOR PUBLICATION GATE
+**Publication:** final commit `72c97b15f9bb31ddb6810a397afc682893497bab` on public `main`; hosted CI Run #7 (`29332025235`) passed
+**Gate:** Sprint 4 publication complete
+**Decision:** APPROVED
 
 ## 1. Authorized boundary
 
@@ -159,31 +160,13 @@ No unresolved Critical or High finding remains.
 
 All applicable Section 31 criteria pass: entry evidence, strict contracts, dictionary, deterministic direct/window transformations, missing/unseen/range handling, reference/batch parity, incompatibility rejection, leakage controls, immutable snapshot behavior, auditable official-source gate, artifact integrity/provenance/cleanup, bounded/idempotent/recoverable Celery, RBAC/CSRF/audit/privacy, reversible migration, synthetic resource bounds, metadata-only API/UI, security/dependency/container gates, clean-stack synthetic path, scope exclusion, current documentation, and no unresolved Critical/High issue.
 
-**Final Sprint 4 decision: APPROVED FOR PUBLICATION GATE.** The independent full-diff review found and resolved the stale-processing High issue, all local gates pass, and no Critical or High issue remains. Hosted CI remains the final external publication check.
+**Final Sprint 4 decision: APPROVED.** The independent full-diff review found and resolved the stale-processing High issue, all local gates passed, final commit `72c97b15f9bb31ddb6810a397afc682893497bab` was published on `main`, and hosted CI Run #7 passed all backend, frontend, and container jobs. No Critical or High issue remains.
 
-## 12. Exact next prompt
+## 12. Publication evidence
 
-```text
-Review the complete uncommitted AegisAI NIDPS Sprint 4 implementation and docs/SPRINT_4_COMPLETION_REPORT.md.
-
-Do not begin Sprint 5 and do not download any dataset.
-
-Confirm the diff remains within Sprint 4 scope and review it for Critical or High security, correctness, privacy, migration, feature-contract, deterministic-window, training/inference-parity, leakage, missing/unseen/range, provenance, Parquet/native-dependency, artifact-integrity/path/retention, idempotency, Celery/resource-limit, RBAC, CSRF/Origin, audit, dataset-governance, and authorization issues. Re-run all applicable local quality, security, dependency, migration, feature/parity/leakage/resource, Docker, Celery, frontend, and health gates.
-
-Confirm specifically that:
-- feature schema v1 is seeded draft and requires an audited Security Administrator review;
-- controlled Parquet contains only the 39 approved model features plus the 7 reserved non-model provenance columns;
-- no raw endpoint address, dataset payload, model, capture, or prevention capability is present;
-- UNSW-NB15 acquisition remains false and its raw PCAP is excluded.
-
-If no Critical or High issue remains:
-1. Create one reviewed Sprint 4 commit.
-2. Push it to the existing public GitHub repository on main.
-3. Run hosted CI.
-4. Correct only Sprint 4 CI failures if necessary.
-5. Report the final commit SHA and hosted CI result.
-
-Do not implement model training/loading/registry/scoring, anomaly or ensemble functionality, live packet capture, dataset download, real prevention, privileged containers, host networking, firewall integration, or any Sprint 5 functionality.
-
-Stop after the Sprint 4 publication gate and wait for my approval.
-```
+- Final public commit: `72c97b15f9bb31ddb6810a397afc682893497bab`.
+- Hosted CI Run #7: `29332025235`, completed successfully for the exact final SHA.
+- Backend, frontend, and container jobs passed.
+- Local `main`, recorded `origin/main`, and the public workflow SHA matched at the publication gate.
+- The working tree was clean after publication.
+- Sprint 5 remained unstarted and dataset acquisition remained false.

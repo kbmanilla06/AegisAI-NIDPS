@@ -25,6 +25,11 @@ class PermissionKey(StrEnum):
     FEATURES_REVIEW = "features:review"
     DATASETS_READ = "datasets:read"
     DATASETS_MANAGE = "datasets:manage"
+    DATASETS_ACQUIRE = "datasets:acquire"
+    DATASETS_ACCEPT = "datasets:accept"
+    SYNTHETIC_DATASETS_READ = "synthetic_datasets:read"
+    SYNTHETIC_DATASETS_GENERATE = "synthetic_datasets:generate"
+    SYNTHETIC_DATASETS_REVIEW = "synthetic_datasets:review"
     PREVENTION_READ = "prevention:read"
     PREVENTION_MANAGE = "prevention:manage"
 
@@ -57,6 +62,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.DETECTIONS_READ_METRICS,
             PermissionKey.FEATURES_READ,
             PermissionKey.DATASETS_READ,
+            PermissionKey.SYNTHETIC_DATASETS_READ,
         }
     ),
     "Security Administrator": frozenset(
@@ -84,10 +90,19 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.FEATURES_REVIEW,
             PermissionKey.DATASETS_READ,
             PermissionKey.DATASETS_MANAGE,
+            PermissionKey.DATASETS_ACCEPT,
+            PermissionKey.SYNTHETIC_DATASETS_READ,
+            PermissionKey.SYNTHETIC_DATASETS_REVIEW,
         }
     ),
     "System Administrator": frozenset(
-        set(PermissionKey) - {PermissionKey.FEATURES_REVIEW, PermissionKey.DATASETS_MANAGE}
+        set(PermissionKey)
+        - {
+            PermissionKey.FEATURES_REVIEW,
+            PermissionKey.DATASETS_MANAGE,
+            PermissionKey.DATASETS_ACCEPT,
+            PermissionKey.SYNTHETIC_DATASETS_REVIEW,
+        }
     ),
     "Auditor": frozenset(
         {
@@ -103,6 +118,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.PREVENTION_READ,
             PermissionKey.FEATURES_READ,
             PermissionKey.DATASETS_READ,
+            PermissionKey.SYNTHETIC_DATASETS_READ,
         }
     ),
 }

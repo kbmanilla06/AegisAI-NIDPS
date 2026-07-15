@@ -1,0 +1,43 @@
+{
+  "contract": "dataset-acquisition-candidate-inventory/v1",
+  "status": "blocked_before_manifest",
+  "official_page_url": "https://research.unsw.edu.au/projects/unsw-nb15-dataset",
+  "publisher": "UNSW Research / UNSW Canberra",
+  "intended_use": "academic_portfolio",
+  "acquisition_authorized": false,
+  "raw_pcap_excluded": true,
+  "publisher_prepared_split_excluded": true,
+  "access_result": "read_only_sharepoint_folder_visible_without_file_open_or_transfer",
+  "observed_hosts": ["research.unsw.edu.au", "unsw-my.sharepoint.com"],
+  "download_ui_present": true,
+  "download_authority_verified": false,
+  "limits": {
+    "combined_bytes": 5368709120,
+    "file_bytes": 2147483648,
+    "file_count": 10,
+    "redirect_count": 5,
+    "connect_timeout_seconds": 30,
+    "idle_timeout_seconds": 120,
+    "file_deadline_seconds": 1800,
+    "retry_count": 2,
+    "protected_free_bytes": 53687091200,
+    "archive_allowed": false,
+    "raw_retention_days": 90
+  },
+  "candidates": [
+    {"logical_name": "UNSW-NB15_1.csv", "observed_name": "UNSW-NB15_1.csv", "role": "principal_data_part", "display_size": "161 MB", "advertised_size_bytes": null, "media_type": "text/csv", "status": "present_blocked_exact_metadata"},
+    {"logical_name": "UNSW-NB15_2.csv", "observed_name": "UNSW-NB15_2.csv", "role": "principal_data_part", "display_size": "158 MB", "advertised_size_bytes": null, "media_type": "text/csv", "status": "present_blocked_exact_metadata"},
+    {"logical_name": "UNSW-NB15_3.csv", "observed_name": "UNSW-NB15_3.csv", "role": "principal_data_part", "display_size": "147 MB", "advertised_size_bytes": null, "media_type": "text/csv", "status": "present_blocked_exact_metadata"},
+    {"logical_name": "UNSW-NB15_4.csv", "observed_name": "UNSW-NB15_4.csv", "role": "principal_data_part", "display_size": "93.1 MB", "advertised_size_bytes": null, "media_type": "text/csv", "status": "present_blocked_exact_metadata"},
+    {"logical_name": "UNSW-NB15_features.csv", "observed_name": "NUSW-NB15_features.csv", "role": "feature_dictionary", "display_size": "3.95 KB", "advertised_size_bytes": null, "media_type": "text/csv", "status": "authorized_name_absent_observed_name_unapproved"},
+    {"logical_name": "UNSW-NB15_GT.csv", "observed_name": "NUSW-NB15_GT.csv", "role": "conditional_label_provenance", "display_size": "82.4 MB", "advertised_size_bytes": null, "media_type": "text/csv", "status": "authorized_name_absent_observed_name_unapproved"},
+    {"logical_name": "UNSW-NB15_LIST_EVENTS.csv", "observed_name": "UNSW-NB15_LIST_EVENTS.csv", "role": "conditional_event_provenance", "display_size": "4.53 KB", "advertised_size_bytes": null, "media_type": "text/csv", "status": "present_blocked_exact_metadata"}
+  ],
+  "blockers": [
+    "two_authorized_filenames_absent_and_differently_spelled_objects_unapproved",
+    "exact_byte_sizes_unavailable_rounded_display_only",
+    "stable_query_free_file_urls_unavailable",
+    "publisher_checksums_unverified",
+    "download_authority_not_exercised"
+  ]
+}

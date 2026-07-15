@@ -577,6 +577,152 @@ class DatasetSplitVersion(Base):
     )
 
 
+class DatasetAcquisitionPlan(Base):
+    __tablename__ = "dataset_acquisition_plans"
+    __table_args__ = (
+        UniqueConstraint("manifest_hash", name="uq_dataset_acquisition_manifest_hash"),
+        CheckConstraint("state = 'proposed'", name="ck_dataset_acquisition_preapproval_state"),
+        CheckConstraint(
+            "combined_byte_limit BETWEEN 1 AND 5368709120",
+            name="ck_dataset_acquisition_combined_limit",
+        ),
+        CheckConstraint(
+            "file_byte_limit BETWEEN 1 AND 2147483648", name="ck_dataset_acquisition_file_limit"
+        ),
+        CheckConstraint(
+            "file_count_limit BETWEEN 1 AND 10", name="ck_dataset_acquisition_file_count"
+        ),
+        CheckConstraint(
+            "raw_retention_days BETWEEN 1 AND 90", name="ck_dataset_acquisition_retention"
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    dataset_name: Mapped[str] = mapped_column(String(128))
+    dataset_version: Mapped[str] = mapped_column(String(64))
+    official_page_url: Mapped[str] = mapped_column(String(512))
+    source_review_hash: Mapped[str] = mapped_column(String(64))
+    terms_reference_hash: Mapped[str] = mapped_column(String(64))
+    manifest: Mapped[dict[str, Any]] = mapped_column(JSON)
+    manifest_hash: Mapped[str] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(24), default="proposed", index=True)
+    combined_byte_limit: Mapped[int] = mapped_column(BigInteger)
+    file_byte_limit: Mapped[int] = mapped_column(BigInteger)
+    file_count_limit: Mapped[int] = mapped_column(Integer)
+    raw_retention_days: Mapped[int] = mapped_column(Integer)
+    created_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class SyntheticGenerationJob(Base):
+    __tablename__ = "synthetic_generation_jobs"
+    __table_args__ = (
+        UniqueConstraint(
+            "requested_by", "idempotency_key", name="uq_synthetic_job_actor_idempotency"
+        ),
+        CheckConstraint(
+            "status IN ('pending','processing','succeeded','failed')",
+            name="ck_synthetic_job_status",
+        ),
+        CheckConstraint("requested_flow_count = 7200", name="ck_synthetic_job_flow_count"),
+        CheckConstraint("generated_flow_count BETWEEN 0 AND 10000", name="ck_synthetic_generated"),
+        CheckConstraint("generated_group_count BETWEEN 0 AND 120", name="ck_synthetic_groups"),
+        CheckConstraint("global_seed = 20260714", name="ck_synthetic_seed"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    feature_schema_id: Mapped[UUID] = mapped_column(
+        ForeignKey("feature_schema_versions.id", ondelete="RESTRICT"), index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    scenario_catalog_hash: Mapped[str] = mapped_column(String(64))
+    global_seed: Mapped[int] = mapped_column(BigInteger, default=20260714)
+    requested_flow_count: Mapped[int] = mapped_column(Integer, default=7200)
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    generated_flow_count: Mapped[int] = mapped_column(Integer, default=0)
+    generated_group_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class SyntheticDatasetVersion(Base):
+    __tablename__ = "synthetic_dataset_versions"
+    __table_args__ = (
+        UniqueConstraint("generation_job_id", name="uq_synthetic_dataset_generation_job"),
+        UniqueConstraint("manifest_hash", name="uq_synthetic_dataset_manifest_hash"),
+        UniqueConstraint("split_manifest_hash", name="uq_synthetic_split_manifest_hash"),
+        CheckConstraint(
+            "lifecycle_state IN ('generated','accepted_synthetic','rejected','retired')",
+            name="ck_synthetic_dataset_lifecycle",
+        ),
+        CheckConstraint("flow_count = 7200", name="ck_synthetic_dataset_flow_count"),
+        CheckConstraint("group_count = 120", name="ck_synthetic_dataset_group_count"),
+        CheckConstraint("feature_column_count = 46", name="ck_synthetic_feature_columns"),
+        CheckConstraint("retention_days = 30", name="ck_synthetic_dataset_retention"),
+        CheckConstraint(
+            "reviewed_by IS NULL OR reviewed_by <> created_by",
+            name="ck_synthetic_distinct_reviewer",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    generation_job_id: Mapped[UUID] = mapped_column(
+        ForeignKey("synthetic_generation_jobs.id", ondelete="RESTRICT"), index=True
+    )
+    created_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    feature_schema_id: Mapped[UUID] = mapped_column(
+        ForeignKey("feature_schema_versions.id", ondelete="RESTRICT"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(128))
+    version: Mapped[str] = mapped_column(String(32))
+    manifest: Mapped[dict[str, Any]] = mapped_column(JSON)
+    manifest_hash: Mapped[str] = mapped_column(String(64))
+    target_manifest_hash: Mapped[str] = mapped_column(String(64))
+    split_manifest: Mapped[dict[str, Any]] = mapped_column(JSON)
+    split_manifest_hash: Mapped[str] = mapped_column(String(64))
+    quality_report: Mapped[dict[str, Any]] = mapped_column(JSON)
+    quality_report_hash: Mapped[str] = mapped_column(String(64))
+    leakage_report: Mapped[dict[str, Any]] = mapped_column(JSON)
+    leakage_report_hash: Mapped[str] = mapped_column(String(64))
+    flow_object_ref: Mapped[str] = mapped_column(String(36))
+    flow_sha256: Mapped[str] = mapped_column(String(64))
+    flow_size_bytes: Mapped[int] = mapped_column(BigInteger)
+    target_object_ref: Mapped[str] = mapped_column(String(36))
+    target_sha256: Mapped[str] = mapped_column(String(64))
+    target_size_bytes: Mapped[int] = mapped_column(BigInteger)
+    feature_object_ref: Mapped[str] = mapped_column(String(36))
+    feature_sha256: Mapped[str] = mapped_column(String(64))
+    feature_size_bytes: Mapped[int] = mapped_column(BigInteger)
+    feature_column_count: Mapped[int] = mapped_column(Integer, default=46)
+    flow_count: Mapped[int] = mapped_column(Integer)
+    group_count: Mapped[int] = mapped_column(Integer)
+    lifecycle_state: Mapped[str] = mapped_column(String(24), default="generated", index=True)
+    reviewed_by: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_reason: Mapped[str | None] = mapped_column(String(500))
+    retention_days: Mapped[int] = mapped_column(Integer, default=30)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    artifacts_deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
 class FeatureMaterializationJob(Base):
     __tablename__ = "feature_materialization_jobs"
     __table_args__ = (

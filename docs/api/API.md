@@ -1,6 +1,6 @@
 # REST and WebSocket API Specification
 
-**Status:** Sprint 1 identity/inventory, Sprint 2 ingestion/flow, Sprint 3 detection, and Sprint 4 feature/dataset metadata routes implemented; later workflow routes remain approved design
+**Status:** Sprint 1 identity/inventory, Sprint 2 ingestion/flow, Sprint 3 detection, Sprint 4 feature metadata, Sprint 5 pre-acquisition proposal routes, and uncommitted Gate 5S-A synthetic metadata routes implemented; later model/workflow routes remain design only
 **Base:** `/api/v1`
 **Common:** authenticated unless public health; JSON; correlation ID; stable error `{code,message,correlation_id,details?}`; pagination on collections.
 
@@ -80,6 +80,27 @@ The PATCH/note/incident routes in the final rows are deferred to Sprint 8 and do
 | POST `/datasets/{id}/review` | Accept/retire metadata | `datasets:manage` | Security Administrator only; no acquisition side effect; audit |
 
 Feature jobs accept only flows from one succeeded ingestion job, order by `(event_time,event_key)`, write an opaque controlled Parquet artifact, and expose SHA-256/shape/expiry metadata. They do not train, load, score, or register a model.
+
+### Sprint 5 pre-acquisition metadata
+
+| Method/path | Purpose | Permission | Controls |
+|---|---|---|---|
+| GET `/dataset-acquisition-plans` | List safe proposal metadata | `datasets:read` | Bounded; no manifest, URL, path, token, or payload |
+| POST `/dataset-acquisition-plans` | Record an exact proposed allowlist | `datasets:acquire` | System Administrator only; proposed state only; CSRF+Origin; strict limits; audit |
+
+There is no owner-approval, transfer, arbitrary-URL, folder-browser, preview, or download endpoint. The source review is blocked at publisher authentication, so no exact proposal has been recorded and no transfer task exists.
+
+### Sprint 5 Gate 5S-A synthetic evidence
+
+| Method/path | Purpose | Permission | Controls |
+|---|---|---|---|
+| GET `/synthetic/scenarios` | Read closed catalog metadata | `synthetic_datasets:read` | Fixed families/labels/seed/limits/hash and mandatory limitation only |
+| GET `/synthetic/generation-jobs` | List bounded job status | `synthetic_datasets:read` | Safe counts/error code; no rows, paths, labels, or artifacts |
+| POST `/synthetic/generation-jobs` | Generate exact bounded evidence | `synthetic_datasets:generate` | System Administrator; approved feature schema; CSRF+Origin; actor idempotency; UUID-only task; audit |
+| GET `/synthetic/datasets` and `/{id}` | Inspect exact aggregate evidence | `synthetic_datasets:read` | Hashes/counts/lifecycle/expiry/flags only; no object refs or rows |
+| POST `/synthetic/datasets/{id}/review` | Accept/reject exact hashes | `synthetic_datasets:review` | Security Administrator; creator self-review denied; CSRF+Origin; row lock; hash-chain validation; audit |
+
+No route accepts scenarios, seeds, counts, labels, rows, paths, URLs, artifacts, preprocessing, model definitions, predictions, activation, online inference, alert mutation, or prevention input.
 
 | Method/path | Purpose | Roles | Controls |
 |---|---|---|---|

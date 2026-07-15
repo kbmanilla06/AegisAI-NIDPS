@@ -17,6 +17,7 @@ from aegis_api.models import Base, FeatureSchemaVersion, Permission, Role, RuleV
 from aegis_api.security.passwords import password_service
 from aegis_api.security.permissions import ROLE_PERMISSION_MATRIX
 from aegis_api.security.throttle import LoginThrottle, get_login_throttle
+from aegis_api.synthetic_dispatch import get_synthetic_dispatcher
 from aegis_services.detection import DEFAULT_RULES, canonical_hash
 from aegis_services.features import feature_schema
 
@@ -36,6 +37,7 @@ class AppHarness:
     artifact_root: Path
     dispatched_jobs: list[str]
     dispatched_feature_jobs: list[str]
+    dispatched_synthetic_jobs: list[str]
 
     def run(self, operation):  # type: ignore[no-untyped-def]
         async def execute():  # type: ignore[no-untyped-def]
@@ -163,8 +165,10 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
     app.dependency_overrides[get_ingestion_throttle] = lambda: throttle
     dispatched_jobs: list[str] = []
     dispatched_feature_jobs: list[str] = []
+    dispatched_synthetic_jobs: list[str] = []
     app.dependency_overrides[get_ingestion_dispatcher] = lambda: dispatched_jobs.append
     app.dependency_overrides[get_feature_dispatcher] = lambda: dispatched_feature_jobs.append
+    app.dependency_overrides[get_synthetic_dispatcher] = lambda: dispatched_synthetic_jobs.append
     with TestClient(app, base_url="https://testserver") as client:
         yield AppHarness(
             client,
@@ -172,5 +176,6 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
             artifact_root,
             dispatched_jobs,
             dispatched_feature_jobs,
+            dispatched_synthetic_jobs,
         )
     asyncio.run(test_engine.dispose())

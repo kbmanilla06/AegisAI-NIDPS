@@ -17,6 +17,8 @@ READ_MATRIX = {
         "/api/v1/feature-schemas": 403,
         "/api/v1/feature-jobs": 403,
         "/api/v1/datasets": 403,
+        "/api/v1/dataset-acquisition-plans": 403,
+        "/api/v1/synthetic/datasets": 403,
     },
     "SOC Analyst": {
         "/api/v1/assets": 200,
@@ -32,6 +34,8 @@ READ_MATRIX = {
         "/api/v1/feature-schemas": 200,
         "/api/v1/feature-jobs": 200,
         "/api/v1/datasets": 403,
+        "/api/v1/dataset-acquisition-plans": 403,
+        "/api/v1/synthetic/datasets": 403,
     },
     "Senior Analyst": {
         "/api/v1/assets": 200,
@@ -47,6 +51,8 @@ READ_MATRIX = {
         "/api/v1/feature-schemas": 200,
         "/api/v1/feature-jobs": 200,
         "/api/v1/datasets": 200,
+        "/api/v1/dataset-acquisition-plans": 200,
+        "/api/v1/synthetic/datasets": 200,
     },
     "Security Administrator": {
         "/api/v1/assets": 200,
@@ -62,6 +68,8 @@ READ_MATRIX = {
         "/api/v1/feature-schemas": 200,
         "/api/v1/feature-jobs": 200,
         "/api/v1/datasets": 200,
+        "/api/v1/dataset-acquisition-plans": 200,
+        "/api/v1/synthetic/datasets": 200,
     },
     "System Administrator": {
         "/api/v1/assets": 200,
@@ -77,6 +85,8 @@ READ_MATRIX = {
         "/api/v1/feature-schemas": 200,
         "/api/v1/feature-jobs": 200,
         "/api/v1/datasets": 200,
+        "/api/v1/dataset-acquisition-plans": 200,
+        "/api/v1/synthetic/datasets": 200,
     },
     "Auditor": {
         "/api/v1/assets": 200,
@@ -92,6 +102,8 @@ READ_MATRIX = {
         "/api/v1/feature-schemas": 200,
         "/api/v1/feature-jobs": 200,
         "/api/v1/datasets": 200,
+        "/api/v1/dataset-acquisition-plans": 200,
+        "/api/v1/synthetic/datasets": 200,
     },
 }
 

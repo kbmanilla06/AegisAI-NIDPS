@@ -1,6 +1,6 @@
 # PostgreSQL Data Design
 
-**Status:** Sprint 1 identity, Sprint 2 ingestion/flow, Sprint 3 deterministic detection/alert, and Sprint 4 feature/dataset metadata subsets implemented; later tables remain logical design
+**Status:** Sprint 1 identity, Sprint 2 ingestion/flow, Sprint 3 deterministic detection/alert, Sprint 4 feature/dataset metadata, and uncommitted Sprint 5 Gate 5S-A synthetic metadata implemented; later model tables remain logical design
 
 ## Conventions
 
@@ -46,6 +46,8 @@
 | dataset_split_versions | dataset ref, strategy, immutable manifest/hash, non-zero train/validation/test counts, reviewer | no split exists until a dataset is separately acquired and accepted |
 | feature_materialization_jobs | requester, approved schema, successful ingestion job, actor-scoped idempotency key, bounded limit, status/counts/snapshot/quality/safe error/timestamps | pending reconciliation; JSON-only Celery UUID dispatch |
 | feature_artifacts | materialization/schema refs, opaque object ref, Parquet media type, SHA-256, size/shape, source snapshot, code version, retention/expiry/status | immutable definition; controlled local volume; 30-day expiry |
+| synthetic_generation_jobs | requester, approved feature schema, actor/idempotency key, closed catalog hash, fixed seed/flow count, bounded status/counts/safe error/timestamps | System Administrator generation; UUID-only Celery dispatch; no scenario/row/task payload |
+| synthetic_dataset_versions | generation/creator/schema refs, immutable dataset/target/split/quality/leakage manifests and hashes, three opaque artifact refs/hashes/sizes, fixed 7,200/120/46 counts, lifecycle/reviewer/expiry | distinct Security Administrator reviewer; 30-day artifacts; PostgreSQL definition trigger; no real-dataset/model fields |
 | model_versions | id, name+version unique, algorithm, artifact_ref, sha256, dataset_version_id, feature_schema_version_id, runtime, status, card_ref | activation permission/audit; one active per purpose via partial unique index |
 | model_metrics | id, model_version_id, split, metric_name, class_label, value, context | unique metric identity where practical |
 | predictions | id, flow_id, model_version_id, feature_schema_version_id, class, probabilities, latency_ms, created_at | traceable; retention configurable |
@@ -102,11 +104,14 @@
 2. Ingestion jobs and telemetry — implemented by reversible migration `0002_sprint2_ingestion`; seeds `telemetry:read`, `ingestion:submit`, and `ingestion:replay` permissions.
 3. Rule versions/activations, canonical signatures, runs/signals, and alert/evidence foundation — implemented by reversible migration `0003_sprint3_detection`; seeds seven permissions and three approved active behavioral rules.
 4. Feature schema, dataset/split metadata, materialization jobs, and controlled artifacts — implemented by reversible migration `0004_sprint4_features`; seeds five permissions, immutable flow feature v1, and metadata-only UNSW-NB15 review.
-5. Intelligence.
-6. Alert workflow/notes.
-7. Incidents/timeline.
-8. Prevention policies/allowlists/requests/gates/previews/simulation records.
-9. Configuration/notifications/reports/retention.
-10. Performance indexes/partitioning only after measured query/load evidence.
+5. Sprint 5 pre-acquisition proposal metadata — implemented by reversible migration `0005_sprint5_preacquisition`; seeds `datasets:acquire` for System Administrator and `datasets:accept` for Security Administrator. Stored proposals are append-only and database-constrained to `proposed`; a later exact owner authorization must add a separate immutable authorization/acquisition record rather than mutating history.
+6. Gate 5S-A synthetic generation and immutable evidence metadata — implemented by reversible migration `0006_sprint5_synthetic_gate`; seeds read/generate/review permissions, enforces creator/reviewer separation, and refuses downgrade while controlled artifacts remain inventoried.
+7. Synthetic-only preprocessing/training/ONNX only after exact Gate 5S-A owner acceptance.
+8. Intelligence.
+9. Alert workflow/notes.
+10. Incidents/timeline.
+11. Prevention policies/allowlists/requests/gates/previews/simulation records.
+12. Configuration/notifications/reports/retention.
+13. Performance indexes/partitioning only after measured query/load evidence.
 
 Every migration requires forward/rollback review, existing-data compatibility, lock-risk analysis, and preservation of audit/model/prevention lineage.

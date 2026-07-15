@@ -1,6 +1,6 @@
 # System Architecture
 
-**Status:** Approved; Sprint 1 identity, Sprint 2 ingestion, Sprint 3 detection, and Sprint 4 feature/data-pipeline boundaries implemented; later components remain proposed
+**Status:** Approved; Sprint 1 identity, Sprint 2 ingestion, Sprint 3 detection, Sprint 4 features, Sprint 5 pre-acquisition, and uncommitted Gate 5S-A synthetic boundaries implemented; model components remain proposed
 
 ## Architectural style
 
@@ -80,13 +80,17 @@ The API is the policy enforcement point. A centralized permission service evalua
 
 ## Messaging and idempotency
 
-Queue messages carry only an ingestion-job, detection-run, or feature-job UUID—not secrets, object paths, metadata, evidence, vectors, or payloads. Workers resolve authoritative rows from PostgreSQL, validate again, commit atomically, and use bounded retries. Poison work becomes a reviewable failed row with a sanitized code rather than retrying indefinitely.
+Queue messages carry only an ingestion-job, detection-run, feature-job, or synthetic-generation-job UUID—not secrets, object paths, metadata, evidence, vectors, labels, scenarios, URLs, or payloads. Workers resolve authoritative rows from PostgreSQL, validate again, commit atomically, and use bounded retries. Poison work becomes a reviewable failed row with a sanitized code rather than retrying indefinitely.
 
 The upload data path is: authenticated user/sensor → API body/rate/content cap → opaque `0700` artifact object plus SHA-256/DB job → JSON-only Celery UUID → strict adapter → canonical v1 validation → idempotency ledger and flow rows → immediate raw deletion. Replay reads previously normalized flows and never depends on retained raw bytes. Live interface capture is not an interface in Sprint 2.
 
 The Sprint 3 path is: successful ingestion → persisted run → JSON-only run UUID → bounded active immutable rule set plus canonical signatures → stable signals → versioned alert fingerprint/evidence → PostgreSQL commit → minimal Redis notification. Fixed event-time windows make evaluation deterministic. Exact reruns are no-ops; material late evidence remains append-oriented. WebSocket clients receive only IDs through bounded queues and fall back to REST polling.
 
 The Sprint 4 path is: successful ingestion job → authorized materialization request → persisted feature job → JSON-only UUID → approved immutable feature schema → canonical flows ordered by `(event_time,event_key)` → deterministic direct and 60/300-second features → atomic controlled Parquet plus SHA-256/shape/expiry metadata. PostgreSQL never stores raw vectors, the API/UI never expose paths or vector rows, and the scheduler expires feature artifacts after 30 days.
+
+The Sprint 5 pre-acquisition path is: publisher metadata review → exact strict proposal contract → System Administrator CSRF/Origin-protected proposal → append-only PostgreSQL metadata plus safe audit. Proposal state cannot authorize transfer. A separately owner-approved immutable manifest is required before the bounded transfer orchestrator can run. No concrete HTTP transport, Celery transfer task, dataset parser, or download API is enabled at this gate.
+
+The Gate 5S-A path is: fixed server-side scenario catalog → System Administrator request → persisted job/audit → JSON-only UUID → bounded documentation-address canonical-flow generation → existing Sprint 4 feature pipeline → mode-0600 canonical-flow, separate target, and 39+7 Parquet artifacts → immutable content/split/quality/leakage evidence → distinct Security Administrator hash review. The test partition remains sealed, and no preprocessor, model, prediction, online endpoint, detection mutation, or prevention dependency exists.
 
 ## Failure and degraded behavior
 
@@ -117,4 +121,4 @@ Development uses ignored environment configuration; CI uses platform secret stor
 
 ## Deferred architectural decision
 
-React/Vite, Celery, cookie sessions, controlled local artifact storage, repository/license, retention, and development-host constraints are approved. Only artifact serialization format remains open in `docs/DECISIONS.md`; it blocks model work, not the current foundation.
+React/Vite, Celery, cookie sessions, controlled local artifact storage, repository/license, retention, development-host constraints, and ONNX plus canonical JSON for D-13 are approved. Dataset acquisition remains blocked on exact authenticated publisher metadata and separate file-level owner authorization.

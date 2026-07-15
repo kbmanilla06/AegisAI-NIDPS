@@ -1,6 +1,6 @@
 # AegisAI NIDPS
 
-A defensive, portfolio-oriented network intrusion detection platform. Sprint 4 adds an immutable canonical-flow feature contract, deterministic direct and 60/300-second window transforms, controlled Parquet artifacts, dataset-governance metadata, bounded Celery materialization, and minimal APIs/UI on top of the published Sprint 3 baseline. Sprint 4 is at the uncommitted review gate; Sprint 3 remains published at `b514aa3` with hosted CI Run #5 passing.
+A defensive, portfolio-oriented network intrusion detection platform. Sprint 4 is published at `72c97b1` with hosted CI Run #7 passing. Sprint 5 Gate 5S-A is implemented locally and uncommitted: it adds bounded project-generated synthetic canonical-flow evidence, the approved 39+7 feature boundary, immutable split/quality/leakage metadata, RBAC/audit, and controlled artifacts. UNSW-NB15 acquisition and publisher outreach remain blocked and cancelled; no real dataset or model is present.
 
 ## Safety status
 
@@ -34,4 +34,4 @@ Backend checks run through `make backend-check`; frontend checks run through `ma
 
 ## Documentation
 
-Start with `docs/PRD.md`, `docs/architecture/ARCHITECTURE.md`, `docs/threat-model/THREAT_MODEL.md`, `docs/SPRINT_4_IMPLEMENTATION_PLAN.md`, and `docs/SPRINT_4_COMPLETION_REPORT.md`.
+Start with `docs/PRD.md`, `docs/architecture/ARCHITECTURE.md`, `docs/threat-model/THREAT_MODEL.md`, `docs/SPRINT_5_SYNTHETIC_ONLY_PLAN.md`, and `docs/SPRINT_5_GATE_5SA_COMPLETION_REPORT.md`. The publisher clarification draft is cancelled and must not be sent.

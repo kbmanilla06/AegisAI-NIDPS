@@ -145,3 +145,32 @@ test("shows feature and dataset governance metadata without raw rows or vectors"
   expect(screen.getByText(/Raw endpoints, vectors, paths, labels/)).toBeInTheDocument();
   expect(screen.queryByText("192.0.2.10")).not.toBeInTheDocument();
 });
+
+test("labels every synthetic dataset view as demo-only with no model controls", async () => {
+  const auth = {
+    user: { id: "u1", email: "auditor@example.com", roles: ["Auditor"], is_active: true, version: 1 },
+    permissions: ["synthetic_datasets:read"],
+  };
+  vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response(JSON.stringify({ status: "ok", prevention_mode: "simulation" }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(auth), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ csrf_token: "csrf-memory-only" }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify([{
+      id: "job-1", feature_schema_id: "schema-1", status: "succeeded",
+      generated_flow_count: 7200, generated_group_count: 120, error_code: null,
+    }]), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify([{
+      id: "synthetic-1", name: "aegis_synthetic_contract_demo", version: "1.0.0",
+      manifest_hash: "a".repeat(64), split_manifest_hash: "b".repeat(64),
+      flow_count: 7200, group_count: 120, feature_column_count: 46,
+      lifecycle_state: "generated", expires_at: "2026-08-13T00:00:00Z",
+      synthetic_demo_only: true,
+    }]), { status: 200 }));
+  render(<App />);
+  expect(await screen.findByText("Synthetic dataset gate")).toBeInTheDocument();
+  expect(screen.getByText(/SYNTHETIC DEMO ONLY/)).toBeInTheDocument();
+  expect(screen.getByText(/7200 flows.*120 groups.*46 columns/)).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Generate/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Accept exact/ })).not.toBeInTheDocument();
+  expect(screen.queryByText(/Activate model/)).not.toBeInTheDocument();
+});

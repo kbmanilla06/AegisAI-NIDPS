@@ -62,6 +62,13 @@ class Settings(BaseSettings):
     feature_hard_limit_seconds: int = Field(default=135, ge=15, le=330)
     feature_pending_delay_seconds: int = Field(default=60, ge=10, le=3600)
     feature_retention_days: int = Field(default=30, ge=1, le=30)
+    synthetic_max_flows: Literal[10_000] = 10_000
+    synthetic_max_groups: Literal[120] = 120
+    synthetic_global_seed: Literal[20260714] = 20260714
+    synthetic_soft_limit_seconds: int = Field(default=120, ge=10, le=120)
+    synthetic_hard_limit_seconds: int = Field(default=135, ge=15, le=135)
+    synthetic_pending_delay_seconds: int = Field(default=60, ge=10, le=3600)
+    synthetic_retention_days: Literal[30] = 30
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

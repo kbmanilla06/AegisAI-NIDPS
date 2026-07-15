@@ -27,6 +27,12 @@ from aegis_api.ingestion_processor import (
     mark_worker_task_failed,
     process_ingestion_job,
 )
+from aegis_api.synthetic_processor import (
+    cleanup_synthetic_artifacts,
+    mark_synthetic_failed,
+    pending_synthetic_jobs,
+    process_synthetic_generation_job,
+)
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -46,6 +52,7 @@ celery_app.conf.update(
         "aegis.ingestion.*": {"queue": "ingestion"},
         "aegis.detection.*": {"queue": "detection"},
         "aegis.features.*": {"queue": "features"},
+        "aegis.synthetic.*": {"queue": "synthetic"},
     },
     beat_schedule={
         "delete-expired-raw-uploads": {
@@ -70,6 +77,14 @@ celery_app.conf.update(
         },
         "delete-expired-feature-artifacts": {
             "task": "aegis.features.cleanup",
+            "schedule": 86400.0,
+        },
+        "reconcile-pending-synthetic-jobs": {
+            "task": "aegis.synthetic.reconcile",
+            "schedule": 60.0,
+        },
+        "delete-expired-synthetic-artifacts": {
+            "task": "aegis.synthetic.cleanup",
             "schedule": 86400.0,
         },
     },
@@ -287,6 +302,71 @@ def cleanup_features() -> int:
     async def run() -> int:
         try:
             return await cleanup_feature_artifacts(settings, SessionFactory)
+        finally:
+            await engine.dispose()
+
+    return asyncio.run(run())
+
+
+async def _run_synthetic_job(job_id: UUID) -> None:
+    try:
+        await process_synthetic_generation_job(job_id, settings, SessionFactory)
+    finally:
+        await engine.dispose()
+
+
+async def _mark_synthetic_job_failed(job_id: UUID, error_code: str) -> None:
+    try:
+        await mark_synthetic_failed(job_id, error_code, SessionFactory)
+    finally:
+        await engine.dispose()
+
+
+@celery_app.task(
+    bind=True,
+    name="aegis.synthetic.generate",
+    max_retries=2,
+    soft_time_limit=settings.synthetic_soft_limit_seconds,
+    time_limit=settings.synthetic_hard_limit_seconds,
+)  # type: ignore[untyped-decorator]
+def generate_synthetic_dataset(task: Task, job_id: str) -> None:
+    """Generate one persisted bounded synthetic dataset; message is one UUID."""
+    parsed_id = UUID(job_id)
+    try:
+        asyncio.run(_run_synthetic_job(parsed_id))
+    except Exception as error:
+        retries = int(task.request.retries)
+        if retries < int(task.max_retries or 0):
+            raise task.retry(exc=error, countdown=min(2 ** (retries + 1), 10)) from error
+        code = str(error) if str(error).startswith("synthetic_") else "synthetic_generation_failed"
+        try:
+            asyncio.run(_mark_synthetic_job_failed(parsed_id, code))
+        except Exception:
+            logger.exception(
+                "Unable to persist sanitized terminal failure for synthetic job %s", parsed_id
+            )
+        raise
+
+
+@celery_app.task(name="aegis.synthetic.reconcile")  # type: ignore[untyped-decorator]
+def reconcile_synthetic_jobs() -> int:
+    async def run() -> list[UUID]:
+        try:
+            return await pending_synthetic_jobs(settings, SessionFactory)
+        finally:
+            await engine.dispose()
+
+    job_ids = asyncio.run(run())
+    for job_id in job_ids:
+        generate_synthetic_dataset.delay(str(job_id))
+    return len(job_ids)
+
+
+@celery_app.task(name="aegis.synthetic.cleanup")  # type: ignore[untyped-decorator]
+def cleanup_synthetic() -> int:
+    async def run() -> int:
+        try:
+            return await cleanup_synthetic_artifacts(settings, SessionFactory)
         finally:
             await engine.dispose()
 

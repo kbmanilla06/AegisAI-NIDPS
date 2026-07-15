@@ -1,6 +1,7 @@
 from aegis_worker.celery_app import (
     celery_app,
     evaluate_detection,
+    generate_synthetic_dataset,
     materialize_features,
     ping,
     process_ingestion,
@@ -38,6 +39,15 @@ def test_detection_task_envelope_rejects_non_uuid() -> None:
 def test_feature_task_envelope_rejects_non_uuid() -> None:
     try:
         materialize_features.run("not-a-uuid")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("malformed task identifier must be rejected")
+
+
+def test_synthetic_task_envelope_rejects_non_uuid() -> None:
+    try:
+        generate_synthetic_dataset.run("not-a-uuid")
     except ValueError:
         pass
     else:

@@ -9,7 +9,8 @@ WORKDIR /app
 RUN addgroup --system aegis && adduser --system --ingroup aegis aegis
 RUN install -d -o aegis -g aegis -m 0700 \
     /var/lib/aegis/artifacts/uploads \
-    /var/lib/aegis/artifacts/features
+    /var/lib/aegis/artifacts/features \
+    /var/lib/aegis/artifacts/synthetic
 
 COPY pyproject.toml ./
 COPY apps/api ./apps/api
@@ -19,4 +20,4 @@ RUN python -m pip install --upgrade pip && python -m pip install .
 
 USER aegis
 
-CMD ["celery", "--app", "aegis_worker.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "--queues=ingestion,detection,features,celery"]
+CMD ["celery", "--app", "aegis_worker.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "--queues=ingestion,detection,features,synthetic,celery"]

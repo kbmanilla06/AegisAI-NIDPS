@@ -1,0 +1,30 @@
+{
+  "contract": "synthetic-scenario-fixtures/v1",
+  "valid": {
+    "version": "1.0.0",
+    "global_seed": 20260714,
+    "families": [
+      "background_mixed_services",
+      "background_sparse_idle",
+      "background_bursty",
+      "scan_like_fanout",
+      "failure_like_sequence",
+      "connection_rate_like",
+      "ambiguous_overlap",
+      "missing_unknown_boundary"
+    ],
+    "labels": ["synthetic_benign_like", "synthetic_intrusion_like"],
+    "maximum_flows": 10000,
+    "maximum_groups": 120
+  },
+  "invalid": [
+    {"field": "global_seed", "value": -1},
+    {"field": "maximum_flows", "value": 10001},
+    {"field": "maximum_groups", "value": 121},
+    {"field": "family", "value": "arbitrary_attack_script"},
+    {"field": "label", "value": "intrusion"},
+    {"field": "source_url", "value": "https://example.invalid/data.csv"},
+    {"field": "path", "value": "../../dataset.csv"},
+    {"field": "code", "value": "import socket"}
+  ]
+}

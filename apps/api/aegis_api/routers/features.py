@@ -14,6 +14,7 @@ from aegis_api.database import get_db
 from aegis_api.errors import ApiError
 from aegis_api.feature_dispatch import get_feature_dispatcher
 from aegis_api.models import (
+    DatasetAcquisitionPlan,
     DatasetVersion,
     FeatureArtifact,
     FeatureMaterializationJob,
@@ -21,6 +22,7 @@ from aegis_api.models import (
     IngestionJob,
 )
 from aegis_api.schemas import (
+    DatasetAcquisitionPlanOut,
     DatasetReviewRequest,
     DatasetVersionOut,
     FeatureArtifactOut,
@@ -35,9 +37,89 @@ from aegis_api.security.authentication import (
     require_permission,
 )
 from aegis_api.security.permissions import PermissionKey
+from aegis_services.datasets import AcquisitionManifestV1, AcquisitionState
 from aegis_services.features import DatasetManifestV1, FeatureSchemaV1
 
 router = APIRouter(prefix="/api/v1")
+
+
+@router.get("/dataset-acquisition-plans", response_model=list[DatasetAcquisitionPlanOut])
+async def list_dataset_acquisition_plans(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _principal: Annotated[Principal, Depends(require_permission(PermissionKey.DATASETS_READ))],
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+) -> list[DatasetAcquisitionPlanOut]:
+    records = (
+        await db.scalars(
+            select(DatasetAcquisitionPlan)
+            .order_by(DatasetAcquisitionPlan.created_at.desc())
+            .limit(limit)
+        )
+    ).all()
+    return [DatasetAcquisitionPlanOut.model_validate(record) for record in records]
+
+
+@router.post(
+    "/dataset-acquisition-plans",
+    response_model=DatasetAcquisitionPlanOut,
+    status_code=201,
+)
+async def create_dataset_acquisition_plan(
+    payload: AcquisitionManifestV1,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    principal: Annotated[
+        Principal, Depends(require_csrf_permission(PermissionKey.DATASETS_ACQUIRE))
+    ],
+) -> DatasetAcquisitionPlanOut:
+    if payload.state != AcquisitionState.PROPOSED:
+        raise ApiError(
+            403,
+            "dataset_acquisition_not_authorized",
+            "Only an unapproved acquisition proposal can be recorded",
+        )
+    record = DatasetAcquisitionPlan(
+        dataset_name=payload.dataset_name,
+        dataset_version=payload.dataset_version,
+        official_page_url=payload.official_page_url,
+        source_review_hash=payload.source_review_hash,
+        terms_reference_hash=payload.terms_reference_hash,
+        manifest=payload.model_dump(mode="json"),
+        manifest_hash=payload.manifest_hash,
+        state=AcquisitionState.PROPOSED.value,
+        combined_byte_limit=payload.limits.combined_bytes,
+        file_byte_limit=payload.limits.file_bytes,
+        file_count_limit=payload.limits.file_count,
+        raw_retention_days=payload.raw_retention_days,
+        created_by=principal.user_id,
+    )
+    db.add(record)
+    try:
+        await db.flush()
+    except IntegrityError as error:
+        await db.rollback()
+        raise ApiError(
+            409, "dataset_acquisition_manifest_conflict", "Acquisition proposal already exists"
+        ) from error
+    record_audit(
+        db,
+        actor_user_id=principal.user_id,
+        action="dataset.acquisition.proposal.create",
+        resource_type="dataset_acquisition_plan",
+        resource_id=str(record.id),
+        outcome="success",
+        correlation_id=request.state.correlation_id,
+        metadata={
+            "manifest_hash": record.manifest_hash,
+            "state": record.state,
+            "file_count": len(payload.files),
+            "combined_advertised_bytes": sum(item.advertised_size_bytes for item in payload.files),
+            "raw_pcap_excluded": payload.raw_pcap_excluded,
+        },
+    )
+    await db.commit()
+    await db.refresh(record)
+    return DatasetAcquisitionPlanOut.model_validate(record)
 
 
 def _schema_out(schema: FeatureSchemaVersion) -> FeatureSchemaOut:

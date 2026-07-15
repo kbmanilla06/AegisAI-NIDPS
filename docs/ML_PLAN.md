@@ -1,6 +1,6 @@
 # Machine Learning and Dataset Plan
 
-**Status:** Sprint 4 feature/data contracts implemented with synthetic fixtures; no dataset downloaded and no model trained
+**Status:** Sprint 5 Gate 5S-A synthetic evidence implemented locally and uncommitted; publisher outreach cancelled and acquisition blocked; no real dataset downloaded and no model/preprocessor trained
 
 ## Objectives
 
@@ -8,7 +8,7 @@ Provide calibrated, explainable evidence for known attack categories and unusual
 
 ## Primary candidate and other datasets
 
-UNSW-NB15 is the primary candidate, not an approved download. The 2026-07-14 publisher-only investigation is recorded in `docs/data/UNSW_NB15_OFFICIAL_SOURCE_REVIEW_2026-07-14.md`: acquisition is false, files/checksums are empty, citation remains required, commercial use requires author agreement, and the raw approximately 100 GB PCAP is excluded. CIC-IDS2017, CSE-CIC-IDS2018, or TON_IoT may later provide independent validation after their own source/license review. NSL-KDD may be used only as a historical baseline.
+UNSW-NB15 is the primary candidate, not an approved download. The current pre-acquisition review is recorded in `docs/data/UNSW_NB15_PREACQUISITION_REVIEW_2026-07-14.md`: the official page still names the four principal CSVs, feature dictionary, ground-truth, event listing, academic-use/citation terms, and raw approximately 100 GB PCAP. Its download link now reaches a Microsoft authentication gate, so exact sizes, media/archive status, direct credential-free objects, and checksums remain unverified. Acquisition remains false. CIC-IDS2017, CSE-CIC-IDS2018, or TON_IoT may later provide independent validation after their own source/license review. NSL-KDD may be used only as a historical baseline.
 
 ## Dataset acceptance checklist
 
@@ -17,6 +17,8 @@ Official source; license; checksum; acquisition date; capture environment; schem
 ## Split strategy
 
 Prefer capture-day, time, host, session, or source-aware splits. Random row splits are prohibited when related flows could cross partitions. Fit imputation, scaling, encoding, sampling, and feature selection on training only. Tune on validation only. Keep the test split untouched until one final candidate evaluation.
+
+For synthetic Gate 5S-A, generation fixes 7,200 rows in 120 whole groups with non-overlapping time bands: 5,040 training, 1,080 validation, and 1,080 sealed test rows. Exact event, vector, group, and rounded-full-vector duplicates across partitions are zero. The two labels are scenario-test metadata, not claims about maliciousness, and no numeric model-performance statement is permitted.
 
 ## Experiments
 

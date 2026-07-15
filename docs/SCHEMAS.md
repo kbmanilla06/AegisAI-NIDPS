@@ -1,6 +1,6 @@
 # Canonical Contract Schemas
 
-**Status:** Canonical flow v1, Sprint 3 detection, and Sprint 4 feature/dataset manifest contracts implemented; later model, assessment, incident, and prevention contracts remain conceptual
+**Status:** Canonical flow v1, Sprint 3 detection, Sprint 4 feature contracts, Sprint 5 pre-acquisition contracts, and uncommitted Gate 5S-A synthetic contracts implemented; later model, assessment, incident, and prevention contracts remain conceptual
 
 ## Common envelope
 
@@ -42,6 +42,16 @@ Payload bytes, filenames, MIME declarations, labels, detection results, and inte
 `DatasetManifestV1`, `SplitManifestV1`, `VocabularyManifestV1`, and `PreprocessorManifestV1` reject unknown fields and bind source terms, files/hashes, split/grouping strategy, train-only fitting evidence, and feature-schema compatibility. Sprint 4 has no accepted dataset, split, fitted production preprocessor, model, or prediction.
 
 The authoritative feature order and semantics are in `docs/features/FEATURE_DICTIONARY_V1.json` and its analyst-readable Markdown companion.
+
+### Dataset acquisition manifest v1
+
+`AcquisitionManifestV1` is immutable and strict. A proposal names an official page, reviewed terms/source hashes, exact query-free HTTPS objects, explicitly allowed DNS hosts, advertised byte sizes, media types, roles, and fixed transfer/retention limits. It rejects credentials, URL queries/fragments, unlisted hosts, duplicates, archives, raw-PCAP inclusion, redistribution claims, excessive bytes/files, and non-proposed authority without an owner-approval reference. The pre-acquisition API can persist only `proposed`; no API or Celery task can authorize or execute transfer. The transfer orchestrator requires `owner_approved`, validates public DNS and every reported redirect, enforces time/byte/media/disk/hash/atomic-mode-0600 controls, and has no enabled concrete network transport at this gate.
+
+### Synthetic Gate 5S-A contracts
+
+`SyntheticScenarioCatalogV1` fixes seed `20260714`, eight ordered closed families, two explicitly non-semantic synthetic labels, and hard maxima of 10,000 flows/120 groups. `SyntheticTargetV1` stores the opaque example identity, label, scenario family, group identity, and preassigned partition outside the feature artifact. `SyntheticSplitManifestV1` binds the dataset content hash to whole-group, non-overlapping time bands with 5,040/1,080/1,080 rows and a sealed test partition. Quality and leakage contracts record aggregate counts, zero real rows/network requests, forbidden-column results, exact/vector/group/rounded-vector duplicate results, and the mandatory synthetic limitation.
+
+`SyntheticDatasetManifestV1` binds canonical-flow schema `1`, feature schema `flow_features/1.0.0`, exactly 39 ordered model features, three opaque controlled artifacts, split/quality/leakage hashes, and machine-readable false flags for real data, UNSW acquisition/evaluation, network traffic, online inference, alert side effects, and prevention. Unknown fields are rejected and definition metadata is immutable.
 
 ## Canonical signature event v1
 

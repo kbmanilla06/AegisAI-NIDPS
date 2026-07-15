@@ -1,0 +1,16 @@
+{
+  "valid": {
+    "logical_name": "UNSW-NB15_1.csv",
+    "source_url": "https://datasets.example.invalid/UNSW-NB15_1.csv",
+    "advertised_size_bytes": 4,
+    "media_type": "text/csv",
+    "role": "principal_data_part",
+    "archive": false
+  },
+  "invalid": [
+    {"case": "query", "source_url": "https://datasets.example.invalid/file.csv?view=blocked"},
+    {"case": "http", "source_url": "http://datasets.example.invalid/file.csv"},
+    {"case": "userinfo", "source_url": "https://user@datasets.example.invalid/file.csv"},
+    {"case": "archive", "archive": true}
+  ]
+}
