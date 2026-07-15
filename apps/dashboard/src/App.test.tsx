@@ -169,7 +169,7 @@ test("labels every synthetic dataset view as demo-only with no model controls", 
   render(<App />);
   expect(await screen.findByText("Synthetic dataset gate")).toBeInTheDocument();
   expect(screen.getByText(/SYNTHETIC DEMO ONLY/)).toBeInTheDocument();
-  expect(screen.getByText(/7200 flows.*120 groups.*46 columns/)).toBeInTheDocument();
+  expect(await screen.findByText(/7200 flows.*120 groups.*46 columns/)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Generate/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Accept exact/ })).not.toBeInTheDocument();
   expect(screen.queryByText(/Activate model/)).not.toBeInTheDocument();
