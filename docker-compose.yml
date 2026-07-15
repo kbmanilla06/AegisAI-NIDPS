@@ -116,8 +116,8 @@ services:
           nocopy: true
     tmpfs:
       - /tmp:size=64m,mode=1777
-    mem_limit: 384m
-    cpus: 0.75
+    mem_limit: 4g
+    cpus: 2.0
     pids_limit: 128
     read_only: true
     depends_on:

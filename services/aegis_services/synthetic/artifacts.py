@@ -85,18 +85,23 @@ def write_synthetic_artifacts(
     return flow_artifact, target_artifact, feature_artifact
 
 
-def select_model_matrix(path: Path, expected_names: tuple[str, ...]) -> object:
+def select_model_matrix(
+    path: Path, expected_names: tuple[str, ...], *, max_rows: int = 10_000
+) -> object:
     try:
         import pyarrow.parquet as pq
     except ImportError as error:  # pragma: no cover
         raise RuntimeError("parquet_dependency_unavailable") from error
-    table = pq.read_table(path)
     if len(expected_names) != 39 or len(set(expected_names)) != 39:
         raise ValueError("synthetic_model_feature_contract_invalid")
     expected_columns = (*PROVENANCE_COLUMNS, *expected_names)
-    if tuple(table.column_names) != expected_columns:
+    parquet = pq.ParquetFile(path)
+    metadata = parquet.metadata
+    if metadata is None or metadata.num_rows > max_rows or metadata.num_columns != 46:
+        raise ValueError("synthetic_scoring_resource_limit")
+    if tuple(parquet.schema_arrow.names) != expected_columns:
         raise ValueError("synthetic_feature_columns_invalid")
-    return table.select(list(expected_names))
+    return pq.read_table(path, columns=list(expected_names))
 
 
 def synthetic_artifact_path(root: Path, object_ref: str, suffix: str) -> Path:

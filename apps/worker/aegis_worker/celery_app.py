@@ -27,6 +27,8 @@ from aegis_api.ingestion_processor import (
     mark_worker_task_failed,
     process_ingestion_job,
 )
+from aegis_api.ml_processor import cleanup_model_candidates, process_training_run
+from aegis_api.scoring_processor import cleanup_scoring_results, process_scoring_job
 from aegis_api.synthetic_processor import (
     cleanup_synthetic_artifacts,
     mark_synthetic_failed,
@@ -53,6 +55,7 @@ celery_app.conf.update(
         "aegis.detection.*": {"queue": "detection"},
         "aegis.features.*": {"queue": "features"},
         "aegis.synthetic.*": {"queue": "synthetic"},
+        "aegis.ml.*": {"queue": "ml"},
     },
     beat_schedule={
         "delete-expired-raw-uploads": {
@@ -85,6 +88,10 @@ celery_app.conf.update(
         },
         "delete-expired-synthetic-artifacts": {
             "task": "aegis.synthetic.cleanup",
+            "schedule": 86400.0,
+        },
+        "delete-expired-model-candidates": {
+            "task": "aegis.ml.cleanup",
             "schedule": 86400.0,
         },
     },
@@ -371,3 +378,54 @@ def cleanup_synthetic() -> int:
             await engine.dispose()
 
     return asyncio.run(run())
+
+
+@celery_app.task(
+    name="aegis.ml.train-synthetic",
+    max_retries=0,
+    soft_time_limit=settings.ml_soft_limit_seconds,
+    time_limit=settings.ml_hard_limit_seconds,
+)  # type: ignore[untyped-decorator]
+def train_synthetic_candidates(run_id: str) -> None:
+    """Fit bounded synthetic-demo candidates; message contains one UUID only."""
+    parsed_id = UUID(run_id)
+
+    async def run() -> None:
+        try:
+            await process_training_run(parsed_id, settings, SessionFactory)
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+
+
+@celery_app.task(name="aegis.ml.cleanup")  # type: ignore[untyped-decorator]
+def cleanup_ml_candidates() -> int:
+    async def run() -> int:
+        try:
+            candidates = await cleanup_model_candidates(settings, SessionFactory)
+            scoring = await cleanup_scoring_results(settings, SessionFactory)
+            return candidates + scoring
+        finally:
+            await engine.dispose()
+
+    return asyncio.run(run())
+
+
+@celery_app.task(
+    name="aegis.ml.score-synthetic",
+    max_retries=0,
+    soft_time_limit=settings.ml_soft_limit_seconds,
+    time_limit=settings.ml_hard_limit_seconds,
+)  # type: ignore[untyped-decorator]
+def score_synthetic_batch(job_id: str) -> None:
+    """Score one accepted synthetic feature artifact; message contains one UUID only."""
+    parsed_id = UUID(job_id)
+
+    async def run() -> None:
+        try:
+            await process_scoring_job(parsed_id, settings, SessionFactory)
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())

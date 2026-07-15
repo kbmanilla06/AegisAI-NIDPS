@@ -25,6 +25,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ml = [
+  "numpy==2.3.5",
+  "scipy==1.17.1",
+  "scikit-learn==1.8.0",
+  "skl2onnx==1.20.0",
+  "onnx==1.22.0",
+  "onnxruntime==1.24.4",
+]
 dev = [
   "aiosqlite>=0.20,<1",
   "bandit>=1.8,<2",
@@ -60,7 +68,10 @@ mypy_path = ["apps/api", "apps/worker", "services"]
 packages = ["aegis_api", "aegis_worker", "aegis_services"]
 
 [[tool.mypy.overrides]]
-module = ["celery", "celery.*", "dpkt", "dpkt.*", "pyarrow", "pyarrow.*"]
+module = [
+  "celery", "celery.*", "dpkt", "dpkt.*", "pyarrow", "pyarrow.*",
+  "sklearn", "sklearn.*", "skl2onnx", "skl2onnx.*", "onnxruntime", "onnxruntime.*",
+]
 ignore_missing_imports = true
 
 [tool.bandit]

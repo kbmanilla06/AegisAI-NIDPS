@@ -13,6 +13,7 @@ from aegis_api.feature_dispatch import get_feature_dispatcher
 from aegis_api.ingestion_dispatch import get_ingestion_dispatcher
 from aegis_api.ingestion_throttle import get_ingestion_throttle
 from aegis_api.main import create_app
+from aegis_api.ml_dispatch import get_training_dispatcher
 from aegis_api.models import Base, FeatureSchemaVersion, Permission, Role, RuleVersion, User
 from aegis_api.security.passwords import password_service
 from aegis_api.security.permissions import ROLE_PERMISSION_MATRIX
@@ -38,6 +39,7 @@ class AppHarness:
     dispatched_jobs: list[str]
     dispatched_feature_jobs: list[str]
     dispatched_synthetic_jobs: list[str]
+    dispatched_training_runs: list[str]
 
     def run(self, operation):  # type: ignore[no-untyped-def]
         async def execute():  # type: ignore[no-untyped-def]
@@ -117,7 +119,9 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
                         is_active=True,
                     )
                 )
-            schema = feature_schema(code_version="sprint4-test")
+            # Match the immutable approved Sprint 4 schema exactly; changing only
+            # code_version also changes the owner-accepted schema definition hash.
+            schema = feature_schema(code_version="sprint4")
             db.add(
                 FeatureSchemaVersion(
                     name=schema.name,
@@ -166,9 +170,11 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
     dispatched_jobs: list[str] = []
     dispatched_feature_jobs: list[str] = []
     dispatched_synthetic_jobs: list[str] = []
+    dispatched_training_runs: list[str] = []
     app.dependency_overrides[get_ingestion_dispatcher] = lambda: dispatched_jobs.append
     app.dependency_overrides[get_feature_dispatcher] = lambda: dispatched_feature_jobs.append
     app.dependency_overrides[get_synthetic_dispatcher] = lambda: dispatched_synthetic_jobs.append
+    app.dependency_overrides[get_training_dispatcher] = lambda: dispatched_training_runs.append
     with TestClient(app, base_url="https://testserver") as client:
         yield AppHarness(
             client,
@@ -177,5 +183,6 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
             dispatched_jobs,
             dispatched_feature_jobs,
             dispatched_synthetic_jobs,
+            dispatched_training_runs,
         )
     asyncio.run(test_engine.dispose())

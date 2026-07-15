@@ -1,0 +1,14 @@
+{
+  "contract": "gate-5sb-hostile-fixtures/v1",
+  "cases": [
+    {"name": "wrong_feature_order", "expected": "ml_feature_contract_mismatch"},
+    {"name": "validation_fit_attempt", "expected": "ml_training_only_fit_required"},
+    {"name": "test_reopen", "expected": "ml_test_already_opened"},
+    {"name": "pickle_artifact", "expected": "ml_artifact_format_forbidden"},
+    {"name": "external_onnx_data", "expected": "ml_onnx_external_data_forbidden"},
+    {"name": "dynamic_onnx_shape", "expected": "ml_onnx_shape_forbidden"},
+    {"name": "custom_domain", "expected": "ml_onnx_domain_forbidden"},
+    {"name": "oversized_model", "expected": "ml_artifact_size_limit"},
+    {"name": "capability_flag_true", "expected": "ml_capability_claim_forbidden"}
+  ]
+}

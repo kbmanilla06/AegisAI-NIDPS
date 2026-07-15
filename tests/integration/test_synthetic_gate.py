@@ -6,11 +6,14 @@ from uuid import UUID
 from sqlalchemy import select
 
 from aegis_api.config import Settings
+from aegis_api.ml_processor import process_training_run
 from aegis_api.models import (
     AuditEvent,
     FeatureSchemaVersion,
     SyntheticDatasetVersion,
     SyntheticGenerationJob,
+    SyntheticModelCandidate,
+    SyntheticTrainingRun,
     User,
 )
 from aegis_api.synthetic_processor import (
@@ -190,6 +193,96 @@ def test_synthetic_rbac_csrf_origin_and_no_general_dataset_authority(
         ).status_code
         == 403
     )
+
+
+def test_gate_5sb_training_request_is_metadata_only_rbac_and_csrf_guarded(
+    app_harness: AppHarness,
+) -> None:
+    created = _create_job(app_harness, "synthetic-for-training")
+    settings = Settings(environment="test", artifact_root=app_harness.artifact_root)
+    app_harness.run(
+        lambda _db: process_synthetic_generation_job(
+            UUID(str(created["id"])), settings, app_harness.session_factory
+        )
+    )
+    dataset = app_harness.client.get("/api/v1/synthetic/datasets").json()[0]
+    _, csrf = app_harness.login("Security Administrator")
+    review = app_harness.client.post(
+        f"/api/v1/synthetic/datasets/{dataset['id']}/review",
+        headers={"Origin": ORIGIN, "X-CSRF-Token": csrf},
+        json={
+            "accepted": True,
+            "reason": "Exact owner-accepted Gate 5S-A hash set verified.",
+            "evidence_reference": "OWNER-GATE-5SA-HASHES",
+        },
+    )
+    assert review.status_code == 200
+
+    for role, expected in {
+        "Viewer": 403,
+        "SOC Analyst": 403,
+        "Senior Analyst": 403,
+        "Security Administrator": 403,
+        "Auditor": 403,
+    }.items():
+        _, token = app_harness.login(role)
+        response = app_harness.client.post(
+            "/api/v1/models/training-runs",
+            headers={
+                "Origin": ORIGIN,
+                "X-CSRF-Token": token,
+                "Idempotency-Key": f"gate5sb-{role.replace(' ', '-').lower()}",
+            },
+            json={"dataset_version_id": dataset["id"]},
+        )
+        assert response.status_code == expected
+
+    _, csrf = app_harness.login("System Administrator")
+    missing_origin = app_harness.client.post(
+        "/api/v1/models/training-runs",
+        headers={"X-CSRF-Token": csrf, "Idempotency-Key": "gate5sb-no-origin"},
+        json={"dataset_version_id": dataset["id"]},
+    )
+    assert missing_origin.status_code == 403
+    response = app_harness.client.post(
+        "/api/v1/models/training-runs",
+        headers={
+            "Origin": ORIGIN,
+            "X-CSRF-Token": csrf,
+            "Idempotency-Key": "gate5sb-authorized-request",
+        },
+        json={"dataset_version_id": dataset["id"]},
+    )
+    assert response.status_code == 202, response.text
+    assert response.json()["scoring_allowed"] is False
+    assert response.json()["online_inference_allowed"] is False
+    assert app_harness.dispatched_training_runs == [response.json()["id"]]
+    run_id = UUID(response.json()["id"])
+    app_harness.run(lambda _db: process_training_run(run_id, settings, app_harness.session_factory))
+
+    async def completed_training(db):  # type: ignore[no-untyped-def]
+        run = await db.get(SyntheticTrainingRun, run_id)
+        candidates = (
+            await db.scalars(
+                select(SyntheticModelCandidate).where(
+                    SyntheticModelCandidate.training_run_id == run_id
+                )
+            )
+        ).all()
+        return run, candidates
+
+    completed, candidates = app_harness.run(completed_training)
+    assert completed is not None and completed.status == "succeeded"
+    assert completed.test_opened_at is not None
+    assert len(candidates) == 2
+    assert sum(item.selected for item in candidates) == 1
+    for candidate in candidates:
+        assert (
+            app_harness.artifact_root / "models" / f"{candidate.model_object_ref}.onnx"
+        ).is_file()
+        assert (
+            app_harness.artifact_root / "models" / f"{candidate.metadata_object_ref}.candidate.json"
+        ).is_file()
 
 
 def test_synthetic_stale_reconciliation_and_retention_cleanup(app_harness: AppHarness) -> None:

@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from aegis_services.synthetic import SYNTHETIC_LIMITATIONS
 
@@ -406,6 +406,122 @@ class SyntheticDatasetReviewRequest(BaseModel):
     accepted: bool
     reason: str = Field(min_length=10, max_length=500)
     evidence_reference: str = Field(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
+
+
+class SyntheticTrainingCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    dataset_version_id: UUID
+
+
+class SyntheticTrainingRunOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    dataset_version_id: UUID
+    status: str
+    threshold: float
+    selected_algorithm: str | None
+    selected_candidate_hash: str | None
+    test_opening_hash: str | None
+    test_opened_at: datetime | None
+    error_code: str | None
+    created_at: datetime
+    completed_at: datetime | None
+    limitations: str = SYNTHETIC_LIMITATIONS
+    synthetic_demo_only: bool = True
+    real_dataset_used: bool = False
+    unsw_nb15_evaluated: bool = False
+    online_inference_allowed: bool = False
+    scoring_allowed: bool = False
+    alert_side_effects_allowed: bool = False
+    prevention_allowed: bool = False
+
+
+class SyntheticCandidateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    training_run_id: UUID
+    algorithm: str
+    lifecycle_state: str
+    model_sha256: str
+    model_size_bytes: int
+    preprocessor_hash: str
+    evaluation_hash: str
+    model_card_hash: str
+    selected: bool
+    created_at: datetime
+    limitations: str = SYNTHETIC_LIMITATIONS
+    synthetic_demo_only: bool = True
+    real_dataset_used: bool = False
+    unsw_nb15_acquired: bool = False
+    unsw_nb15_evaluated: bool = False
+    network_traffic_generated: bool = False
+    online_inference_allowed: bool = False
+    scoring_allowed: bool = False
+    alert_side_effects_allowed: bool = False
+    prevention_allowed: bool = False
+
+
+class SyntheticRegistryReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    accepted: bool
+    reason: str = Field(min_length=8, max_length=512)
+    evidence_reference: str = Field(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
+
+
+class SyntheticRegistryModelOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    candidate_id: UUID
+    lifecycle_state: str
+    purpose: str
+    reviewed_by: UUID
+    candidate_hash: str
+    expires_at: datetime
+    created_at: datetime
+    limitations: str = SYNTHETIC_LIMITATIONS
+    synthetic_demo_only: bool = True
+    real_dataset_used: bool = False
+    unsw_nb15_acquired: bool = False
+    unsw_nb15_evaluated: bool = False
+    online_inference_allowed: bool = False
+    scoring_allowed: bool = True
+    alert_side_effects_allowed: bool = False
+    prevention_allowed: bool = False
+
+    @model_validator(mode="after")
+    def enforce_lifecycle_capabilities(self) -> "SyntheticRegistryModelOut":
+        if self.lifecycle_state != "reviewed_synthetic":
+            self.scoring_allowed = False
+        return self
+
+
+class SyntheticScoringCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    registry_model_id: UUID
+    dataset_version_id: UUID
+
+
+class SyntheticScoringJobOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    registry_model_id: UUID
+    dataset_version_id: UUID
+    status: str
+    row_count: int
+    predicted_counts: dict[str, object]
+    error_code: str | None
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+    limitations: str = SYNTHETIC_LIMITATIONS
+    synthetic_demo_only: bool = True
+    real_dataset_used: bool = False
+    unsw_nb15_acquired: bool = False
+    unsw_nb15_evaluated: bool = False
+    online_inference_allowed: bool = False
+    scoring_allowed: bool = True
+    alert_side_effects_allowed: bool = False
+    prevention_allowed: bool = False
 
 
 class Severity(StrEnum):

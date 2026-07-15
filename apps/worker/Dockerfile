@@ -11,13 +11,14 @@ RUN install -d -o aegis -g aegis -m 0700 \
     /var/lib/aegis/artifacts/uploads \
     /var/lib/aegis/artifacts/features \
     /var/lib/aegis/artifacts/synthetic
+RUN install -d -o aegis -g aegis -m 0700 /var/lib/aegis/artifacts/models
 
 COPY pyproject.toml ./
 COPY apps/api ./apps/api
 COPY apps/worker ./apps/worker
 COPY services ./services
-RUN python -m pip install --upgrade pip && python -m pip install .
+RUN python -m pip install --upgrade pip && python -m pip install '.[ml]'
 
 USER aegis
 
-CMD ["celery", "--app", "aegis_worker.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "--queues=ingestion,detection,features,synthetic,celery"]
+CMD ["celery", "--app", "aegis_worker.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1", "--queues=ingestion,detection,features,synthetic,ml,celery"]

@@ -1,6 +1,6 @@
 # AegisAI NIDPS
 
-A defensive, portfolio-oriented network intrusion detection platform. Sprint 4 is published at `72c97b1` with hosted CI Run #7 passing. Sprint 5 Gate 5S-A is implemented locally and uncommitted: it adds bounded project-generated synthetic canonical-flow evidence, the approved 39+7 feature boundary, immutable split/quality/leakage metadata, RBAC/audit, and controlled artifacts. UNSW-NB15 acquisition and publisher outreach remain blocked and cancelled; no real dataset or model is present.
+A defensive, portfolio-oriented network intrusion detection platform. Sprint 4 is published at `72c97b1` with hosted CI Run #7 passing. Sprint 5 Gate 5S-C is implemented locally and uncommitted: it adds bounded project-generated synthetic canonical-flow evidence, reviewed synthetic registry metadata, and isolated aggregate-only offline scoring. UNSW-NB15 acquisition and publisher outreach remain blocked and cancelled; no real dataset or online model capability is present.
 
 ## Safety status
 

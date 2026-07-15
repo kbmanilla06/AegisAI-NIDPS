@@ -30,6 +30,11 @@ class PermissionKey(StrEnum):
     SYNTHETIC_DATASETS_READ = "synthetic_datasets:read"
     SYNTHETIC_DATASETS_GENERATE = "synthetic_datasets:generate"
     SYNTHETIC_DATASETS_REVIEW = "synthetic_datasets:review"
+    MODELS_READ = "models:read"
+    MODELS_TRAIN_SYNTHETIC = "models:train_synthetic"
+    MODELS_REVIEW_SYNTHETIC = "models:review_synthetic"
+    MODELS_SCORE_SYNTHETIC = "models:score_synthetic"
+    PREDICTIONS_READ = "predictions:read"
     PREVENTION_READ = "prevention:read"
     PREVENTION_MANAGE = "prevention:manage"
 
@@ -63,6 +68,9 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.FEATURES_READ,
             PermissionKey.DATASETS_READ,
             PermissionKey.SYNTHETIC_DATASETS_READ,
+            PermissionKey.MODELS_READ,
+            PermissionKey.MODELS_SCORE_SYNTHETIC,
+            PermissionKey.PREDICTIONS_READ,
         }
     ),
     "Security Administrator": frozenset(
@@ -93,6 +101,10 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.DATASETS_ACCEPT,
             PermissionKey.SYNTHETIC_DATASETS_READ,
             PermissionKey.SYNTHETIC_DATASETS_REVIEW,
+            PermissionKey.MODELS_READ,
+            PermissionKey.MODELS_REVIEW_SYNTHETIC,
+            PermissionKey.MODELS_SCORE_SYNTHETIC,
+            PermissionKey.PREDICTIONS_READ,
         }
     ),
     "System Administrator": frozenset(
@@ -102,6 +114,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.DATASETS_MANAGE,
             PermissionKey.DATASETS_ACCEPT,
             PermissionKey.SYNTHETIC_DATASETS_REVIEW,
+            PermissionKey.MODELS_REVIEW_SYNTHETIC,
         }
     ),
     "Auditor": frozenset(
@@ -119,6 +132,9 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.FEATURES_READ,
             PermissionKey.DATASETS_READ,
             PermissionKey.SYNTHETIC_DATASETS_READ,
+            PermissionKey.MODELS_READ,
+            PermissionKey.MODELS_SCORE_SYNTHETIC,
+            PermissionKey.PREDICTIONS_READ,
         }
     ),
 }

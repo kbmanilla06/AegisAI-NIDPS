@@ -723,6 +723,145 @@ class SyntheticDatasetVersion(Base):
     )
 
 
+class SyntheticTrainingRun(Base):
+    __tablename__ = "synthetic_training_runs"
+    __table_args__ = (
+        UniqueConstraint("requested_by", "idempotency_key", name="uq_synthetic_training_actor_key"),
+        CheckConstraint(
+            "status IN ('pending','processing','succeeded','failed')",
+            name="ck_synthetic_training_status",
+        ),
+        CheckConstraint("threshold = 0.5", name="ck_synthetic_training_threshold"),
+        CheckConstraint("retention_days = 30", name="ck_synthetic_training_retention"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    dataset_version_id: Mapped[UUID] = mapped_column(
+        ForeignKey("synthetic_dataset_versions.id", ondelete="RESTRICT"), index=True
+    )
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    threshold: Mapped[float] = mapped_column(default=0.5)
+    selected_algorithm: Mapped[str | None] = mapped_column(String(32))
+    selected_candidate_hash: Mapped[str | None] = mapped_column(String(64))
+    test_opening_hash: Mapped[str | None] = mapped_column(String(64))
+    test_opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    retention_days: Mapped[int] = mapped_column(Integer, default=30)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class SyntheticModelCandidate(Base):
+    __tablename__ = "synthetic_model_candidates"
+    __table_args__ = (
+        UniqueConstraint("training_run_id", "algorithm", name="uq_synthetic_candidate_algorithm"),
+        UniqueConstraint("model_sha256", name="uq_synthetic_candidate_model_hash"),
+        CheckConstraint(
+            "algorithm IN ('logistic_regression','random_forest')",
+            name="ck_synthetic_candidate_algorithm",
+        ),
+        CheckConstraint(
+            "lifecycle_state = 'unreviewed_candidate'", name="ck_synthetic_candidate_state"
+        ),
+        CheckConstraint(
+            "model_size_bytes BETWEEN 1 AND 16777216", name="ck_synthetic_candidate_size"
+        ),
+        CheckConstraint(
+            "metadata_size_bytes BETWEEN 1 AND 16777216",
+            name="ck_synthetic_candidate_metadata_size",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    training_run_id: Mapped[UUID] = mapped_column(
+        ForeignKey("synthetic_training_runs.id", ondelete="RESTRICT"), index=True
+    )
+    algorithm: Mapped[str] = mapped_column(String(32))
+    lifecycle_state: Mapped[str] = mapped_column(
+        String(32), default="unreviewed_candidate", index=True
+    )
+    model_object_ref: Mapped[str] = mapped_column(String(64))
+    model_sha256: Mapped[str] = mapped_column(String(64))
+    model_size_bytes: Mapped[int] = mapped_column(BigInteger)
+    metadata_object_ref: Mapped[str] = mapped_column(String(64))
+    metadata_sha256: Mapped[str] = mapped_column(String(64))
+    metadata_size_bytes: Mapped[int] = mapped_column(BigInteger)
+    preprocessor_hash: Mapped[str] = mapped_column(String(64))
+    evaluation_hash: Mapped[str] = mapped_column(String(64))
+    model_card_hash: Mapped[str] = mapped_column(String(64))
+    safe_metadata: Mapped[dict[str, Any]] = mapped_column(JSON)
+    selected: Mapped[bool] = mapped_column(default=False)
+    artifacts_deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class SyntheticRegistryModel(Base):
+    __tablename__ = "synthetic_registry_models"
+    __table_args__ = (
+        UniqueConstraint("candidate_id", name="uq_synthetic_registry_candidate"),
+        CheckConstraint(
+            "lifecycle_state IN ('reviewed_synthetic','rejected','quarantined','retired')",
+            name="ck_synthetic_registry_state",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    candidate_id: Mapped[UUID] = mapped_column(
+        ForeignKey("synthetic_model_candidates.id", ondelete="RESTRICT"), index=True
+    )
+    lifecycle_state: Mapped[str] = mapped_column(
+        String(24), default="reviewed_synthetic", index=True
+    )
+    purpose: Mapped[str] = mapped_column(String(64), default="synthetic_demo_offline")
+    reviewed_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    review_reason: Mapped[str] = mapped_column(String(512))
+    evidence_reference: Mapped[str] = mapped_column(String(128))
+    candidate_hash: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SyntheticScoringJob(Base):
+    __tablename__ = "synthetic_scoring_jobs"
+    __table_args__ = (
+        UniqueConstraint("requested_by", "idempotency_key", name="uq_synthetic_scoring_actor_key"),
+        CheckConstraint(
+            "status IN ('pending','processing','succeeded','failed')",
+            name="ck_synthetic_scoring_status",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    registry_model_id: Mapped[UUID] = mapped_column(
+        ForeignKey("synthetic_registry_models.id", ondelete="RESTRICT"), index=True
+    )
+    dataset_version_id: Mapped[UUID] = mapped_column(
+        ForeignKey("synthetic_dataset_versions.id", ondelete="RESTRICT"), index=True
+    )
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    row_count: Mapped[int] = mapped_column(Integer, default=0)
+    predicted_counts: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class FeatureMaterializationJob(Base):
     __tablename__ = "feature_materialization_jobs"
     __table_args__ = (

@@ -69,6 +69,11 @@ class Settings(BaseSettings):
     synthetic_hard_limit_seconds: int = Field(default=135, ge=15, le=135)
     synthetic_pending_delay_seconds: int = Field(default=60, ge=10, le=3600)
     synthetic_retention_days: Literal[30] = 30
+    ml_soft_limit_seconds: int = Field(default=1200, ge=60, le=1200)
+    ml_hard_limit_seconds: int = Field(default=1350, ge=90, le=1350)
+    ml_pending_delay_seconds: int = Field(default=60, ge=10, le=3600)
+    ml_candidate_retention_days: Literal[30] = 30
+    ml_max_artifact_bytes: Literal[16_777_216] = 16_777_216
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

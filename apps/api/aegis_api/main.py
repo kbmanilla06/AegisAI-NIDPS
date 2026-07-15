@@ -17,6 +17,7 @@ from aegis_api.routers import (
     detection,
     features,
     ingestion,
+    ml,
     sensors,
     synthetic,
     users,
@@ -34,7 +35,10 @@ def create_app(settings_override: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="AegisAI NIDPS API",
         version="0.6.0",
-        description="Sprint 5 Gate 5S-A synthetic-only evidence. Prevention is simulation-only.",
+        description=(
+            "Sprint 5 Gate 5S-C synthetic-only offline scoring metadata. "
+            "Prevention is simulation-only."
+        ),
         lifespan=lifespan,
     )
     app.state.settings = settings
@@ -63,6 +67,7 @@ def create_app(settings_override: Settings | None = None) -> FastAPI:
     app.include_router(detection.router)
     app.include_router(features.router)
     app.include_router(synthetic.router)
+    app.include_router(ml.router)
     app.include_router(detection.ws_router)
     return app
 
