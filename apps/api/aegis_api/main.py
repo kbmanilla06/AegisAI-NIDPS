@@ -11,6 +11,7 @@ from aegis_api.errors import install_error_handlers
 from aegis_api.health import HealthChecks, create_health_router
 from aegis_api.middleware import install_correlation_middleware
 from aegis_api.routers import (
+    anomaly,
     assets,
     audit,
     auth,
@@ -34,9 +35,9 @@ def create_app(settings_override: Settings | None = None) -> FastAPI:
     settings = settings_override or get_settings()
     app = FastAPI(
         title="AegisAI NIDPS API",
-        version="0.6.0",
+        version="0.7.0",
         description=(
-            "Sprint 5 Gate 5S-C synthetic-only offline scoring metadata. "
+            "Sprint 6 synthetic-only anomaly and transparent offline fusion evidence. "
             "Prevention is simulation-only."
         ),
         lifespan=lifespan,
@@ -61,6 +62,7 @@ def create_app(settings_override: Settings | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(users.router)
     app.include_router(assets.router)
+    app.include_router(anomaly.router)
     app.include_router(sensors.router)
     app.include_router(audit.router)
     app.include_router(ingestion.router)

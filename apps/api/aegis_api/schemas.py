@@ -642,3 +642,81 @@ class DetectionMetricsOut(BaseModel):
     alerts: int
     occurrences: int
     suppressed: int
+
+
+class AnomalyDetectorOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    lifecycle_state: str
+    status: str
+    algorithm: str
+    feature_schema_hash: str
+    dataset_content_hash: str
+    split_manifest_hash: str
+    training_identity_hash: str
+    normal_identity_hash: str
+    manifest_hash: str | None
+    model_sha256: str | None
+    model_size_bytes: int
+    threshold_hash: str | None
+    safe_metadata: dict[str, object]
+    error_code: str | None
+    expires_at: datetime
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class AnomalyFitCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    preprocessor_hash: str = Field(default="0" * 64, pattern=r"^[a-f0-9]{64}$")
+
+
+class AnomalyReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    approved: bool
+    reason: str = Field(min_length=8, max_length=512)
+
+
+class EnsemblePolicyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    version: str
+    definition: dict[str, object]
+    policy_hash: str
+    lifecycle_state: str
+    reviewed_by: UUID | None
+    review_reason: str | None
+    limitations: str
+    created_at: datetime
+
+
+class AssessmentBatchCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    feature_artifact_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    anomaly_detector_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    threshold_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    policy_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class AssessmentBatchOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    status: str
+    dataset_content_hash: str
+    feature_artifact_hash: str
+    anomaly_detector_hash: str
+    threshold_hash: str
+    policy_hash: str
+    row_count: int
+    aggregate: dict[str, object]
+    error_code: str | None
+    limitations: str
+    expires_at: datetime
+    created_at: datetime
+    completed_at: datetime | None

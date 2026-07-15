@@ -35,6 +35,10 @@ class PermissionKey(StrEnum):
     MODELS_REVIEW_SYNTHETIC = "models:review_synthetic"
     MODELS_SCORE_SYNTHETIC = "models:score_synthetic"
     PREDICTIONS_READ = "predictions:read"
+    ANOMALY_FIT = "anomaly:fit"
+    ANOMALY_EVALUATE = "anomaly:evaluate"
+    ENSEMBLE_REVIEW = "ensemble:review"
+    ENSEMBLE_EVALUATE = "ensemble:evaluate"
     PREVENTION_READ = "prevention:read"
     PREVENTION_MANAGE = "prevention:manage"
 
@@ -71,6 +75,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.MODELS_READ,
             PermissionKey.MODELS_SCORE_SYNTHETIC,
             PermissionKey.PREDICTIONS_READ,
+            PermissionKey.ANOMALY_EVALUATE,
+            PermissionKey.ENSEMBLE_EVALUATE,
         }
     ),
     "Security Administrator": frozenset(
@@ -105,6 +111,9 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.MODELS_REVIEW_SYNTHETIC,
             PermissionKey.MODELS_SCORE_SYNTHETIC,
             PermissionKey.PREDICTIONS_READ,
+            PermissionKey.ANOMALY_EVALUATE,
+            PermissionKey.ENSEMBLE_EVALUATE,
+            PermissionKey.ENSEMBLE_REVIEW,
         }
     ),
     "System Administrator": frozenset(
@@ -115,6 +124,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.DATASETS_ACCEPT,
             PermissionKey.SYNTHETIC_DATASETS_REVIEW,
             PermissionKey.MODELS_REVIEW_SYNTHETIC,
+            PermissionKey.ENSEMBLE_REVIEW,
         }
     ),
     "Auditor": frozenset(

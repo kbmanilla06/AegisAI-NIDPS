@@ -74,6 +74,13 @@ class Settings(BaseSettings):
     ml_pending_delay_seconds: int = Field(default=60, ge=10, le=3600)
     ml_candidate_retention_days: Literal[30] = 30
     ml_max_artifact_bytes: Literal[16_777_216] = 16_777_216
+    anomaly_max_rows: Literal[10_000] = 10_000
+    anomaly_max_model_bytes: Literal[16_777_216] = 16_777_216
+    anomaly_soft_limit_seconds: int = Field(default=165, ge=30, le=300)
+    anomaly_hard_limit_seconds: int = Field(default=180, ge=45, le=330)
+    anomaly_candidate_retention_days: Literal[30] = 30
+    ensemble_max_signals: Literal[7] = 7
+    ensemble_assessment_retention_days: Literal[30] = 30
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

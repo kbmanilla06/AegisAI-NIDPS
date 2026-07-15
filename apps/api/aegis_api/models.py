@@ -937,6 +937,147 @@ class FeatureArtifact(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class AnomalyDetectorVersion(Base):
+    """Immutable, synthetic-only Isolation Forest candidate metadata."""
+
+    __tablename__ = "anomaly_detector_versions"
+    __table_args__ = (
+        UniqueConstraint("manifest_hash", name="uq_anomaly_detector_manifest"),
+        CheckConstraint(
+            "lifecycle_state IN ("
+            "'unreviewed_candidate','reviewed_synthetic','rejected','quarantined','retired')",
+            name="ck_anomaly_detector_state",
+        ),
+        CheckConstraint("model_size_bytes BETWEEN 0 AND 16777216", name="ck_anomaly_detector_size"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    lifecycle_state: Mapped[str] = mapped_column(
+        String(32), default="unreviewed_candidate", index=True
+    )
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    algorithm: Mapped[str] = mapped_column(String(32), default="isolation_forest")
+    feature_schema_hash: Mapped[str] = mapped_column(String(64))
+    preprocessor_hash: Mapped[str] = mapped_column(String(64))
+    dataset_content_hash: Mapped[str] = mapped_column(String(64))
+    split_manifest_hash: Mapped[str] = mapped_column(String(64))
+    training_identity_hash: Mapped[str] = mapped_column(String(64))
+    normal_identity_hash: Mapped[str] = mapped_column(String(64))
+    manifest_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    model_object_ref: Mapped[str | None] = mapped_column(String(64))
+    model_sha256: Mapped[str | None] = mapped_column(String(64))
+    model_size_bytes: Mapped[int] = mapped_column(BigInteger, default=0)
+    metadata_object_ref: Mapped[str | None] = mapped_column(String(64))
+    metadata_sha256: Mapped[str | None] = mapped_column(String(64))
+    metadata_size_bytes: Mapped[int] = mapped_column(BigInteger, default=0)
+    threshold_hash: Mapped[str | None] = mapped_column(String(64))
+    safe_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    review_reason: Mapped[str | None] = mapped_column(String(512))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    artifacts_deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AnomalyThresholdVersion(Base):
+    __tablename__ = "anomaly_threshold_versions"
+    __table_args__ = (UniqueConstraint("threshold_hash", name="uq_anomaly_threshold_hash"),)
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    detector_id: Mapped[UUID] = mapped_column(
+        ForeignKey("anomaly_detector_versions.id", ondelete="RESTRICT"), index=True
+    )
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    review_reason: Mapped[str | None] = mapped_column(String(512))
+    detector_manifest_hash: Mapped[str] = mapped_column(String(64))
+    threshold_hash: Mapped[str] = mapped_column(String(64))
+    threshold: Mapped[float] = mapped_column()
+    validation_identity_hash: Mapped[str] = mapped_column(String(64))
+    validation_reference_count: Mapped[int] = mapped_column(Integer)
+    lifecycle_state: Mapped[str] = mapped_column(String(24), default="candidate", index=True)
+    test_opened_once: Mapped[bool] = mapped_column(Boolean, default=True)
+    limitations: Mapped[str] = mapped_column(String(512))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EnsemblePolicyVersion(Base):
+    __tablename__ = "ensemble_policy_versions"
+    __table_args__ = (UniqueConstraint("policy_hash", name="uq_ensemble_policy_hash"),)
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    version: Mapped[str] = mapped_column(String(32))
+    definition: Mapped[dict[str, Any]] = mapped_column(JSON)
+    policy_hash: Mapped[str] = mapped_column(String(64))
+    lifecycle_state: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    review_reason: Mapped[str | None] = mapped_column(String(512))
+    limitations: Mapped[str] = mapped_column(String(512))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AssessmentBatch(Base):
+    __tablename__ = "assessment_batches"
+    __table_args__ = (
+        UniqueConstraint("requested_by", "idempotency_key", name="uq_assessment_actor_key"),
+        CheckConstraint("row_count BETWEEN 0 AND 10000", name="ck_assessment_rows"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    dataset_content_hash: Mapped[str] = mapped_column(String(64))
+    feature_artifact_hash: Mapped[str] = mapped_column(String(64))
+    anomaly_detector_hash: Mapped[str] = mapped_column(String(64))
+    threshold_hash: Mapped[str] = mapped_column(String(64))
+    policy_hash: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    row_count: Mapped[int] = mapped_column(Integer, default=0)
+    aggregate: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    limitations: Mapped[str] = mapped_column(String(512))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class DecisionAssessment(Base):
+    __tablename__ = "decision_assessments"
+    __table_args__ = (
+        UniqueConstraint("batch_id", "source_identity_hash", name="uq_decision_batch_source"),
+        CheckConstraint("risk_score BETWEEN 0 AND 100", name="ck_decision_risk"),
+        CheckConstraint("confidence BETWEEN 0 AND 1", name="ck_decision_confidence"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    batch_id: Mapped[UUID] = mapped_column(
+        ForeignKey("assessment_batches.id", ondelete="RESTRICT"), index=True
+    )
+    source_identity_hash: Mapped[str] = mapped_column(String(64))
+    policy_hash: Mapped[str] = mapped_column(String(64))
+    anomaly_detector_hash: Mapped[str] = mapped_column(String(64))
+    source_scores: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    risk_score: Mapped[int] = mapped_column(Integer)
+    confidence: Mapped[float] = mapped_column()
+    severity: Mapped[str] = mapped_column(String(24))
+    category: Mapped[str] = mapped_column(String(64))
+    uncertainty_codes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    evidence_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    limitations: Mapped[str] = mapped_column(String(512))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 

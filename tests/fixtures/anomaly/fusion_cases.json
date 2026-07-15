@@ -1,0 +1,29 @@
+{
+  "contract": "sprint6-fusion-fixture/v1",
+  "cases": [
+    {
+      "name": "all_sources_agree",
+      "sources": ["signature", "behavioral_rule", "supervised", "anomaly"],
+      "scores": [0.9, 0.8, 0.7, 0.6],
+      "expected_severity": "high"
+    },
+    {
+      "name": "single_anomaly_is_uncertain",
+      "sources": ["anomaly"],
+      "scores": [0.99],
+      "expected_uncertainty": ["SINGLE_SOURCE"]
+    },
+    {
+      "name": "no_valid_signal",
+      "sources": [],
+      "scores": [],
+      "expected_reason": "NO_VALID_SIGNAL"
+    },
+    {
+      "name": "conflicting_sources",
+      "sources": ["signature", "anomaly"],
+      "scores": [0.99, 0.01],
+      "expected_uncertainty": ["SIGNAL_DISAGREEMENT"]
+    }
+  ]
+}

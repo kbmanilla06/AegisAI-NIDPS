@@ -7,6 +7,11 @@ from celery import Celery
 from celery.app.task import Task
 from redis.asyncio import Redis
 
+from aegis_api.anomaly_processor import (
+    cleanup_anomaly_artifacts,
+    process_anomaly_fit,
+    process_assessment_batch,
+)
 from aegis_api.config import get_settings
 from aegis_api.database import SessionFactory, engine
 from aegis_api.detection_processor import (
@@ -56,6 +61,8 @@ celery_app.conf.update(
         "aegis.features.*": {"queue": "features"},
         "aegis.synthetic.*": {"queue": "synthetic"},
         "aegis.ml.*": {"queue": "ml"},
+        "aegis.anomaly.*": {"queue": "ml"},
+        "aegis.ensemble.*": {"queue": "ml"},
     },
     beat_schedule={
         "delete-expired-raw-uploads": {
@@ -94,6 +101,10 @@ celery_app.conf.update(
             "task": "aegis.ml.cleanup",
             "schedule": 86400.0,
         },
+        "delete-expired-anomaly-artifacts": {
+            "task": "aegis.anomaly.cleanup",
+            "schedule": 86400.0,
+        },
     },
 )
 
@@ -102,6 +113,21 @@ celery_app.conf.update(
 def ping() -> str:
     """Bounded foundation task used only for worker-health verification."""
     return "ok"
+
+
+@celery_app.task(name="aegis.anomaly.fit", time_limit=180, soft_time_limit=165)  # type: ignore[untyped-decorator]
+def fit_anomaly_detector(detector_id: str) -> None:
+    asyncio.run(process_anomaly_fit(UUID(detector_id), settings, SessionFactory))
+
+
+@celery_app.task(name="aegis.ensemble.evaluate", time_limit=180, soft_time_limit=165)  # type: ignore[untyped-decorator]
+def evaluate_ensemble_batch(batch_id: str) -> None:
+    asyncio.run(process_assessment_batch(UUID(batch_id), settings, SessionFactory))
+
+
+@celery_app.task(name="aegis.anomaly.cleanup")  # type: ignore[untyped-decorator]
+def cleanup_anomaly() -> int:
+    return asyncio.run(cleanup_anomaly_artifacts(settings, SessionFactory))
 
 
 async def _run_process(job_id: UUID) -> UUID | None:

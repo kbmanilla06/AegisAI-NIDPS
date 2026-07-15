@@ -1,0 +1,10 @@
+{
+  "contract": "sprint6-anomaly-hostile-fixture/v1",
+  "cases": [
+    {"name": "non_finite", "value": "NaN", "expected": "anomaly_input_non_finite"},
+    {"name": "wrong_width", "width": 38, "expected": "anomaly_resource_limit"},
+    {"name": "oversized_batch", "rows": 10001, "expected": "anomaly_resource_limit"},
+    {"name": "unsupported_source", "source": "payload", "expected": "schema_reject"},
+    {"name": "path_traversal", "object_ref": "../model", "expected": "anomaly_artifact_path_invalid"}
+  ]
+}
