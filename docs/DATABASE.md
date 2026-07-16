@@ -1,6 +1,6 @@
 # PostgreSQL Data Design
 
-**Status:** Sprint 1 identity, Sprint 2 ingestion/flow, Sprint 3 deterministic detection/alert, Sprint 4 feature/dataset metadata, and uncommitted Sprint 5 Gate 5S-A synthetic metadata implemented; later model tables remain logical design
+**Status:** Implemented through Sprint 8 on `main`: Sprint 1 identity, Sprint 2 ingestion/flow, Sprint 3 detection/alert, Sprint 4 feature/dataset metadata, Sprint 5 synthetic (Gate 5S-A/B/C), Sprint 6 anomaly detector/threshold/ensemble-policy + assessment tables (`0009`), Sprint 7 explanation-method/explanation + intelligence-source/indicator/match + MITRE catalog/mapping tables (`0010`), and Sprint 8 alert-workflow columns + `alert_notes`/`incidents`/`incident_alerts`/`incident_timeline` (`0011`). Prevention adapter/enforcement tables remain out of scope (Sprint 9+)
 
 ## Conventions
 
@@ -60,7 +60,8 @@
 | intelligence_sources | id, name unique, trust_level, terms, enabled | provenance |
 | indicators | id, type, normalized_value_hash/value policy, source_id, confidence, first/last_seen, expires_at | normalized unique by type/value/source/time; expiry index |
 | indicator_matches | id, indicator_id, flow/alert ref, matched_at, state | preserves provenance |
-| alerts | id, fingerprint unique and schema, source/category/severity, status fixed `new`, grouping JSON, optional rule/sensor, occurrence/overflow counts, first/last seen, created/updated | Sprint 3 has no assignee, risk, confidence, incident, or disposition workflow |
+| alerts | id, fingerprint unique and schema, source/category/severity, grouping JSON, optional rule/sensor, occurrence/overflow counts, first/last seen, created/updated; Sprint 8 adds status lifecycle (`new`/`acknowledged`/`investigating`/`closed`), assignee, disposition, closed_by/at, updated_by | Sprint 3 projection/dedup/severity/evidence unchanged; Sprint 8 unlocked the workflow (disposition required on close); still no risk/confidence or prevention |
+| alert_notes / incidents / incident_alerts / incident_timeline | Sprint 8: append-only sanitized notes; incidents (correlation key/version, status, owner, disposition, expiry); incident↔alert membership; ordered append-only timeline | metadata-only; no endpoints/vectors; deterministic offline correlation; no prevention/network state |
 | alert_evidence | id, alert_id, nullable signal_id, bounded evidence snapshot/hash, occurred_at, created_at | source flow IDs are explanatory references only; snapshot remains after flow retention |
 | alert_notes | id, alert_id, author_id, body, created_at, edited_at | sanitize/display safely; audit edits |
 | incidents | id, title, severity, status, owner_id, opened/closed timestamps, root_cause, containment, recovery, version | closure requirements; status index |
@@ -106,12 +107,12 @@
 4. Feature schema, dataset/split metadata, materialization jobs, and controlled artifacts — implemented by reversible migration `0004_sprint4_features`; seeds five permissions, immutable flow feature v1, and metadata-only UNSW-NB15 review.
 5. Sprint 5 pre-acquisition proposal metadata — implemented by reversible migration `0005_sprint5_preacquisition`; seeds `datasets:acquire` for System Administrator and `datasets:accept` for Security Administrator. Stored proposals are append-only and database-constrained to `proposed`; a later exact owner authorization must add a separate immutable authorization/acquisition record rather than mutating history.
 6. Gate 5S-A synthetic generation and immutable evidence metadata — implemented by reversible migration `0006_sprint5_synthetic_gate`; seeds read/generate/review permissions, enforces creator/reviewer separation, and refuses downgrade while controlled artifacts remain inventoried.
-7. Synthetic-only preprocessing/training/ONNX only after exact Gate 5S-A owner acceptance.
-8. Intelligence.
-9. Alert workflow/notes.
-10. Incidents/timeline.
-11. Prevention policies/allowlists/requests/gates/previews/simulation records.
-12. Configuration/notifications/reports/retention.
-13. Performance indexes/partitioning only after measured query/load evidence.
+7. Gate 5S-B synthetic preprocessing/supervised training/ONNX candidates — reversible migration `0007_sprint5_synthetic_training` (after exact Gate 5S-A owner acceptance).
+8. Gate 5S-C synthetic registry/scoring evidence — reversible migration `0008_sprint5_synthetic_registry`.
+9. Sprint 6 anomaly detector/threshold, ensemble policy, and assessment tables — reversible migration `0009_sprint6_anomaly_ensemble`.
+10. Sprint 7 explanation methods/results, intelligence sources/indicators/matches, and MITRE catalog/mappings — reversible migration `0010_sprint7_explainability_intelligence`.
+11. Sprint 8 alert-workflow columns (status lifecycle unlocked), `alert_notes`, and `incidents`/`incident_alerts`/`incident_timeline` — reversible migration `0011_sprint8_alert_incident_soc`; downgrade refuses while non-`new` alerts or any incidents remain.
+
+Deferred (Sprint 9+, not implemented): prevention policies/allowlists/requests/gates/previews/simulation records; configuration/notifications/reports/retention tables; performance indexes/partitioning only after measured query/load evidence.
 
 Every migration requires forward/rollback review, existing-data compatibility, lock-risk analysis, and preservation of audit/model/prevention lineage.
