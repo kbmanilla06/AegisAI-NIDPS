@@ -194,6 +194,18 @@ export function App() {
       void apiRequest<EnsemblePolicy[]>("/anomaly/policies").then(setEnsemblePolicies);
       void apiRequest<AssessmentBatch[]>("/anomaly/assessments").then(setAssessmentBatches);
     }
+    if (auth.permissions.includes("explanations:read")) {
+      void apiRequest<ExplanationMethod[]>("/explainability/methods").then(setExplanationMethods);
+      void apiRequest<ExplanationBatch[]>("/explainability/batches").then(setExplanationBatches);
+    }
+    if (auth.permissions.includes("intelligence:read")) {
+      void apiRequest<IntelligenceSource[]>("/intelligence/sources").then(setIntelSources);
+      void apiRequest<Indicator[]>("/intelligence/indicators").then(setIndicators);
+      void apiRequest<MatchBatch[]>("/intelligence/match-batches").then(setMatchBatches);
+    }
+    if (auth.permissions.includes("mitre:read")) {
+      void apiRequest<MitreTechniqueCatalog[]>("/intelligence/mitre/techniques").then(setMitreCatalogs);
+    }
     if (auth.permissions.includes("alerts:read")) {
       const refresh = () => void apiRequest<Alert[]>("/alerts").then(setAlerts);
       refresh();
@@ -574,6 +586,41 @@ export function App() {
                     </li>
                   ))}
                 </ul>
+              </section>
+            )}
+
+            {can("explanations:read") && (
+              <section className="panel" aria-labelledby="explanations-title">
+                <h2 id="explanations-title">Offline explainability</h2>
+                <ul>
+                  {explanationMethods.map((method) => (
+                    <li key={method.id}>
+                      {method.method} · {method.target_algorithm} · top-{method.top_k} · {method.lifecycle_state}
+                    </li>
+                  ))}
+                </ul>
+                <p role="status">Batches: {explanationBatches.length}</p>
+              </section>
+            )}
+
+            {can("intelligence:read") && (
+              <section className="panel" aria-labelledby="intelligence-title">
+                <h2 id="intelligence-title">Threat intelligence (synthetic)</h2>
+                <ul>
+                  {intelSources.map((source) => (
+                    <li key={source.id}>
+                      {source.name} · trust {source.trust_level} · {source.lifecycle_state}
+                    </li>
+                  ))}
+                </ul>
+                <p role="status">Indicators: {indicators.length} · Match batches: {matchBatches.length}</p>
+                {can("mitre:read") && (
+                  <ul>
+                    {mitreCatalogs.map((catalog) => (
+                      <li key={catalog.id}>MITRE catalog {catalog.catalog_version} · techniques {catalog.techniques.length}</li>
+                    ))}
+                  </ul>
+                )}
               </section>
             )}
 
