@@ -88,6 +88,9 @@ def _alert_out(alert: Alert, sensitive: bool) -> AlertSummaryOut:
         last_seen=alert.last_seen,
         created_at=alert.created_at,
         rule_version_id=alert.rule_version_id,
+        assignee_id=alert.assignee_id,
+        disposition=alert.disposition,
+        closed_at=alert.closed_at,
     )
 
 
