@@ -31,4 +31,14 @@ Sprint 2 order: fixtures/schema → normalized adapter → Zeek → Suricata flo
 
 Sprint 3 deterministic detection was published on `main` as `b514aa3592487a65b8de8e1cfa14f4f9b80c5976`; hosted CI Run #5 (`29325828604`) passed all backend, frontend, and container jobs.
 
-Sprint 4 feature engineering and the versioned data pipeline were published on `main` as `72c97b15f9bb31ddb6810a397afc682893497bab`; hosted CI Run #7 (`29332025235`) passed all jobs. Publisher outreach is cancelled and UNSW-NB15 acquisition is blocked/deferred. Sprint 5 Gate 5S-A synthetic contracts, generation, exact 39+7 feature materialization, group/time split, quality/leakage evidence, metadata APIs/UI, RBAC/audit, controlled artifacts, and retention are implemented locally and uncommitted. Gate 5S-B remains blocked on explicit owner acceptance of every exact Gate 5S-A hash; no preprocessing or model work is authorized.
+Sprint 4 feature engineering and the versioned data pipeline were published on `main` as `72c97b15f9bb31ddb6810a397afc682893497bab`; hosted CI Run #7 (`29332025235`) passed all jobs. Publisher outreach is cancelled and UNSW-NB15 acquisition is blocked/deferred.
+
+Sprint 5 synthetic-only track (Gate 5S-A synthetic generation, 5S-B preprocessing/supervised training, 5S-C dashboard evidence) is complete and published on `main`. UNSW-NB15 acquisition remains blocked; all work is synthetic, offline, and no model is activated. The pre-acquisition disk-space preflight test flake (CI Run #14) was fixed deterministically and merged via PR #3 (`cb9c5f9`).
+
+Sprint 6 offline anomaly detection and transparent fusion were published on `main` as `e11f103` (Gate 6A isolation-forest ONNX detector, Gate 6B fusion policy, Gate 6C review). Offline batch only; no activation, online inference, or alert/prevention mutation.
+
+Sprint 7 explainability, synthetic threat-intelligence, and MITRE ATT&CK context merged via PR #1 (`2d816c4`): deterministic offline permutation/occlusion attribution, bundled hash-only indicators (RFC 5737/3849/.invalid), qualified MITRE mappings, migration `0010`. Every invariant (real_feed/external_lookup/online_inference/prevention/enforcement) is pinned false.
+
+Sprint 8 alert SOC workflow and incident correlation merged via PR #2 (`7056d71`): unlocked the Sprint-3 alert status lifecycle (status/assignment/notes/disposition, FR-010), added deterministic offline incident correlation with timeline/ownership (FR-011), optional metadata-only alert notifications (FR-012), a frontend SOC view, and migration `0011`. No prevention/containment/network state; correlation runs synchronously (bounded, idempotent) rather than as a Celery batch. The Sprint 8 plan and completion report are on `main` (PRs #4 `b937007`, #5). Hosted CI is green on the merged tree.
+
+Sprint 9+ (prevention policy/adapters and enforcement) remains out of scope under the synthetic-only boundary and is not implemented.

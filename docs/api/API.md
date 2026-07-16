@@ -1,6 +1,6 @@
 # REST and WebSocket API Specification
 
-**Status:** Sprint 1 identity/inventory, Sprint 2 ingestion/flow, Sprint 3 detection, Sprint 4 feature metadata, Sprint 5 pre-acquisition proposal routes, and uncommitted Gate 5S-A synthetic metadata routes implemented; later model/workflow routes remain design only
+**Status:** Implemented through Sprint 8 on `main`: identity/inventory, ingestion/flow, detection, feature/dataset metadata, Sprint 5 synthetic (5S-A/B/C), Sprint 6 offline anomaly/fusion, Sprint 7 offline explainability + synthetic threat-intelligence/MITRE, and Sprint 8 alert SOC workflow + incident correlation. All model-adjacent routes are offline/metadata-only and non-activating; prevention/enforcement routes remain design-only (Sprint 9+)
 **Base:** `/api/v1`
 **Common:** authenticated unless public health; JSON; correlation ID; stable error `{code,message,correlation_id,details?}`; pagination on collections.
 
@@ -55,14 +55,15 @@ Job states are `pending`, `processing`, `succeeded`, `failed`, or `rejected`. Re
 | GET `/detection/runs/{id}` | Inspect one run | `detections:read_metrics` | safe status/error only |
 | GET `/alerts` | List new alerts | `alerts:read` | limit 1–100; endpoint fields redacted without sensitive permission |
 | GET `/alerts/{id}` | Alert plus bounded evidence | `alerts:read` | `alerts:read_sensitive` controls endpoint evidence; no internal exception/path |
-| PATCH `/alerts/{id}/status` | Valid transition | Analyst | Expected version; state validation; audit |
-| POST `/alerts/{id}/notes` | Add note | Analyst | Length/content validation; audit |
-| GET/POST `/incidents` | List/create case | Analyst | Alert access validation; audit create |
-| GET/PATCH `/incidents/{id}` | Review/update valid fields | Analyst | State/concurrency checks; audit |
-| POST `/incidents/{id}/alerts` | Add alert | Analyst | Prevent duplicate/orphan; audit |
-| POST `/incidents/{id}/timeline` | Append event/note | Analyst | Append-only semantics; audit |
+| POST `/alerts/{id}/status` | Workflow transition (new→acknowledged→investigating→closed) | `alerts:triage` | CSRF+Origin; optimistic expected-status; disposition required on close; best-effort notify; audit |
+| POST `/alerts/{id}/assign` | Assign alert to an analyst | `alerts:triage` | CSRF+Origin; valid active assignee; audit |
+| POST/GET `/alerts/{id}/notes` | Append/read sanitized notes | `alerts:triage` / `alerts:read` | endpoint-token redaction; 4 KiB bound; append-only; audit |
+| POST `/incidents/correlate` | Offline deterministic correlation of alerts into incidents | `incidents:correlate` | CSRF+Origin; idempotent by correlation key; audit |
+| GET `/incidents` and `/{id}` | List / detail with membership and timeline | `incidents:read` | aggregate/metadata only; no endpoints/vectors |
+| POST `/incidents/{id}/status` | Incident transition (open→investigating→resolved→closed) | `incidents:manage` | CSRF+Origin; optimistic; disposition on close; audit |
+| POST `/incidents/{id}/assign` | Set incident owner | `incidents:manage` | CSRF+Origin; valid active owner; audit |
 
-The PATCH/note/incident routes in the final rows are deferred to Sprint 8 and do not exist in Sprint 3. Sprint 3 alerts remain status `new`; there is no assignment, disposition, incident, model, risk, confidence, or prevention action.
+The alert-workflow and incident routes above were delivered in Sprint 8 (PR #2, `7056d71`). Sprint 3 detection still projects alerts as status `new`; Sprint 8 adds the workflow/disposition/assignment/notes lifecycle and deterministic offline incident correlation with timeline and ownership. There is no model risk/confidence and no prevention action on any alert or incident — enforcement remains out of scope (Sprint 9+).
 
 ## Intelligence and ML
 
@@ -102,9 +103,15 @@ There is no owner-approval, transfer, arbitrary-URL, folder-browser, preview, or
 
 No route accepts scenarios, seeds, counts, labels, rows, paths, URLs, artifacts, preprocessing, model definitions, predictions, activation, online inference, alert mutation, or prevention input.
 
+Sprint 6 offline anomaly/fusion (`GET /anomaly/detectors`, `/anomaly/policies`, `/anomaly/assessments`; `POST /anomaly/*` fit/evaluate under `anomaly:*`) and Sprint 7 explainability and threat-intelligence/MITRE were delivered as **offline, metadata-only** route families, all synthetic and non-activating:
+
 | Method/path | Purpose | Roles | Controls |
 |---|---|---|---|
-| GET/POST `/intelligence/indicators` | Query/import | Analyst read; Security Admin write | Type normalization, provenance, expiry required by policy; audit write |
+| GET/POST `/explainability/methods` and `/methods/{id}/review` | Reviewed offline explanation methods | `explanations:read` / `:generate` / `:review` | CSRF+Origin; creator/reviewer separation; hash-bound; audit |
+| POST/GET `/explainability/batches` (+`/{id}`, `/explanations`) | Offline attribution over synthetic vectors | `explanations:generate` / `:read` | idempotency; no model activation; association-only summaries |
+| GET `/intelligence/sources`, `/indicators`, `/match-batches` | Redacted synthetic intel metadata | `intelligence:read` | value hashes only; expiry shown |
+| POST `/intelligence/imports`, `/match-batches` | Bundled fixture import; offline matching | `intelligence:import` / `:match` | fixture name only (no URL/file/network); idempotency; audit |
+| GET `/intelligence/mitre/techniques`, `/mappings` | Bundled ATT&CK catalog and qualified mappings | `mitre:read` | no live fetch; provenance shown |
 | GET `/models` | List model metadata/status | Analyst/Admin/Auditor | No unrestricted artifact path |
 | POST `/models/register` | Register candidate manifest | Security Admin | Provenance/hash/compatibility/card required; audit |
 | POST `/models/{id}/activate` | Activate reviewed model | Security Admin | Evaluation evidence and rollback target; audit |

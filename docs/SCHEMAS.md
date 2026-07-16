@@ -1,6 +1,6 @@
 # Canonical Contract Schemas
 
-**Status:** Canonical flow v1, Sprint 3 detection, Sprint 4 feature contracts, Sprint 5 pre-acquisition contracts, and uncommitted Gate 5S-A synthetic contracts implemented; later model, assessment, incident, and prevention contracts remain conceptual
+**Status:** Implemented through Sprint 8 on `main`: canonical flow v1, Sprint 3 detection, Sprint 4 feature contracts, Sprint 5 synthetic contracts (Gate 5S-A/B/C), Sprint 6 anomaly/fusion assessment contracts, Sprint 7 explanation/intelligence/MITRE contracts (all invariants pinned false), and Sprint 8 alert-workflow and `IncidentV1` contracts. Prevention request/enforcement contracts remain conceptual (Sprint 9+)
 
 ## Common envelope
 
@@ -71,11 +71,11 @@ Fields: assessment version, contributing signal IDs, asset context version, risk
 
 ## Alert v1
 
-Sprint 3 fields are alert ID, `alert-fingerprint/v1`, source, category, severity, status=`new`, normalized grouping, optional rule/sensor reference, occurrence and evidence-overflow counts, first/last seen, and bounded evidence snapshots. Sensitive endpoint fields are presenter-redacted by permission. Risk/confidence, assignment, dispositions, incidents, intelligence, models, and prevention lifecycle are deferred.
+Sprint 3 projection fields are alert ID, `alert-fingerprint/v1`, source, category, severity, normalized grouping, optional rule/sensor reference, occurrence and evidence-overflow counts, first/last seen, and bounded evidence snapshots (presenter-redacted by permission). **Sprint 8** unlocked the workflow band on this immutable core: status lifecycle (`new`→`acknowledged`→`investigating`→`closed`), assignee, disposition (required on close), closed_by/at, plus append-only sanitized notes. Risk/confidence, models, and prevention lifecycle remain absent (out of scope).
 
 ## Incident v1
 
-Fields: incident ID, title, severity, status, owner, alert IDs, timeline, evidence references, containment, recovery, root cause, opened/closed times, concurrency version, and audit link.
+Implemented in Sprint 8 as `IncidentV1`: incident ID, deterministic correlation key + version, category, status (`open`→`investigating`→`resolved`→`closed`), owner, disposition (on close), member alert IDs, ordered append-only timeline, alert count, and expiry. Metadata-only — no endpoints, payloads, labels, or vectors. There is **no containment/recovery/enforcement field**; incidents are investigative workflow state only (Sprint 9+ prevention remains out of scope).
 
 ## Prevention request v1
 
