@@ -4,7 +4,7 @@ Status: **APPROVED — PUBLISHED**
 Decision: **APPROVED at Gate 6C; activation and online inference remain unauthorized**
 Baseline: public Gate 5S-C `9cc643dba4a9d15284eb1a812bf661f848a801ce`; hosted CI Run #12 passed.
 Final commit: `e11f10398776ea0e348e4e2e2adc07a184759be9` on public `main`.
-Hosted CI: Run **#13**, [completed successfully](https://github.com/kbmanilla06/AegisAI-NIDPS/actions/runs/29397915436).
+Hosted CI: implementation commit `e11f103` — Run **#13** [completed successfully](https://github.com/kbmanilla06/AegisAI-NIDPS/actions/runs/29397915436). Documentation commit `1b62b03` — Run **#14** [completed successfully on rerun (attempt 2)](https://github.com/kbmanilla06/AegisAI-NIDPS/actions/runs/29398307144); attempt 1 failed transiently (see "Hosted CI Run #14 note" below).
 
 ## Scope and safety boundary
 
@@ -81,6 +81,22 @@ Publication is complete; model registry activation, online inference, real data,
 - The worker performs deterministic synthetic evidence generation in a bounded task; production capacity is not inferred from synthetic elapsed time.
 - The API intentionally exposes metadata and aggregate counts only; row-level decision sidecars are hash-bound and retention-limited.
 - No numeric detection-performance claim is made or permitted.
+
+## Hosted CI Run #14 note (post-publication triage)
+
+The documentation-only commit `1b62b03` (which records Sprint 6 publication) pushed to `main` and re-triggered the full workflow as Run #14, because `.github/workflows/ci.yml` has no `paths:` filter. Attempt 1 failed: the `backend` job's `pytest` step exited 1 with `3 failed, 138 passed`; `frontend` and `containers` passed.
+
+Root cause — **transient, environment (disk-space) dependent; not a Sprint 6 regression.** All three failures were pre-existing Sprint 5 dataset-acquisition tests:
+
+- `tests/unit/test_dataset_acquisition.py::test_transfer_is_atomic_mode_0600_hashed_and_bounded`
+- `tests/unit/test_dataset_acquisition.py::test_transfer_deletes_partial_on_size_or_integrity_failure`
+- `tests/unit/test_dataset_acquisition.py::test_transfer_rejects_unapproved_redirect_chain`
+
+Each raised `OSError: insufficient protected free space for dataset acquisition` at `services/aegis_services/datasets/acquisition.py:287`. The `_preflight` guard reads real free space via `shutil.disk_usage(...).free` and requires `protected_free_bytes (50 GiB) + 3 × advertised_size_bytes`. The tests monkeypatch only `_require_public_dns` and leave `shutil.disk_usage` un-mocked, so they require ≥50 GiB free on the runner temp filesystem. GitHub-hosted `ubuntu-24.04` free disk sits near that boundary, so the same code passed at Run #13 and failed at Run #14. Sprint 6 (anomaly/fusion) did not touch `acquisition.py` or these tests.
+
+Local reproduction (Python 3.11, this repo, no code change): the three tests **pass** where free space is 243.6 GiB (≥ 50 GiB); forcing `shutil.disk_usage` to report 40 GiB free reproduces the exact `OSError` before any network call, confirming causation.
+
+Resolution: no production code changed. Run #14 failed jobs were re-run on the same commit `1b62b03` (no new commit, no history rewrite); attempt 2 completed successfully (`backend`, `frontend`, `containers` all green), so public `main` is green. Follow-up (not done here, out of this triage's scope): make the three tests deterministic by mocking `shutil.disk_usage`, so CI no longer depends on runner free disk.
 
 ## Exact next approval prompt
 
