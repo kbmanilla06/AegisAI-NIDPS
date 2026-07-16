@@ -445,7 +445,20 @@ class Alert(Base):
             "severity IN ('informational','low','medium','high','critical')",
             name="ck_alerts_severity",
         ),
-        CheckConstraint("status = 'new'", name="ck_alerts_sprint3_status"),
+        # Sprint 8 unlocks the workflow lifecycle reserved by Sprint 3's status lock.
+        CheckConstraint(
+            "status IN ('new','acknowledged','investigating','closed')",
+            name="ck_alerts_status",
+        ),
+        CheckConstraint(
+            "disposition IS NULL OR disposition IN "
+            "('false_positive','benign','synthetic_true_positive')",
+            name="ck_alerts_disposition",
+        ),
+        CheckConstraint(
+            "(status = 'closed') = (disposition IS NOT NULL)",
+            name="ck_alerts_disposition_on_close",
+        ),
         CheckConstraint("occurrence_count > 0", name="ck_alerts_occurrence_count"),
     )
 
@@ -468,11 +481,31 @@ class Alert(Base):
     evidence_overflow_hash: Mapped[str | None] = mapped_column(String(64))
     first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    # Sprint 8 SOC workflow band (projection core above is immutable Sprint 3 state).
+    assignee_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    disposition: Mapped[str | None] = mapped_column(String(32))
+    closed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class AlertNote(Base):
+    __tablename__ = "alert_notes"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    alert_id: Mapped[UUID] = mapped_column(ForeignKey("alerts.id", ondelete="RESTRICT"), index=True)
+    author_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    body: Mapped[str] = mapped_column(String(4096))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
     )
 
 
@@ -1313,3 +1346,69 @@ class MitreMapping(Base):
     reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     limitations: Mapped[str] = mapped_column(String(1024))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Incident(Base):
+    __tablename__ = "incidents"
+    __table_args__ = (
+        UniqueConstraint("correlation_key", name="uq_incidents_correlation_key"),
+        CheckConstraint(
+            "status IN ('open','investigating','resolved','closed')",
+            name="ck_incidents_status",
+        ),
+        CheckConstraint(
+            "disposition IS NULL OR disposition IN "
+            "('false_positive','benign','synthetic_true_positive')",
+            name="ck_incidents_disposition",
+        ),
+        CheckConstraint("alert_count >= 0", name="ck_incidents_alert_count"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    correlation_key: Mapped[str] = mapped_column(String(64))
+    correlation_version: Mapped[str] = mapped_column(String(32))
+    category: Mapped[str] = mapped_column(String(128), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="open", index=True)
+    owner_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    disposition: Mapped[str | None] = mapped_column(String(32))
+    alert_count: Mapped[int] = mapped_column(Integer, default=0)
+    limitations: Mapped[str] = mapped_column(String(1024))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    updated_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class IncidentAlert(Base):
+    __tablename__ = "incident_alerts"
+    __table_args__ = (
+        UniqueConstraint("incident_id", "alert_id", name="uq_incident_alerts_member"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    incident_id: Mapped[UUID] = mapped_column(
+        ForeignKey("incidents.id", ondelete="RESTRICT"), index=True
+    )
+    alert_id: Mapped[UUID] = mapped_column(ForeignKey("alerts.id", ondelete="RESTRICT"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class IncidentTimeline(Base):
+    __tablename__ = "incident_timeline"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    incident_id: Mapped[UUID] = mapped_column(
+        ForeignKey("incidents.id", ondelete="RESTRICT"), index=True
+    )
+    event_type: Mapped[str] = mapped_column(String(32))
+    detail: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    actor_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )

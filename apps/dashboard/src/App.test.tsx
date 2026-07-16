@@ -112,7 +112,7 @@ test("shows versioned deterministic rules and alerts with bounded live status", 
     }]), { status: 200 }));
   render(<App />);
   expect(await screen.findByText(/Port scan indicator/)).toBeInTheDocument();
-  expect(await screen.findByText(/reconnaissance · behavioral_rule · occurrences 2/)).toBeInTheDocument();
+  expect(await screen.findByText(/reconnaissance · behavioral_rule · new · occurrences 2/)).toBeInTheDocument();
   expect(await screen.findByText("Live updates: connected")).toBeInTheDocument();
   expect(screen.getByText(/Rules never invoke prevention/)).toBeInTheDocument();
 });

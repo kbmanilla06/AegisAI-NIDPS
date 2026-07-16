@@ -47,6 +47,10 @@ class PermissionKey(StrEnum):
     INTELLIGENCE_REVIEW = "intelligence:review"
     INTELLIGENCE_MATCH = "intelligence:match"
     MITRE_READ = "mitre:read"
+    ALERTS_TRIAGE = "alerts:triage"
+    INCIDENTS_READ = "incidents:read"
+    INCIDENTS_CORRELATE = "incidents:correlate"
+    INCIDENTS_MANAGE = "incidents:manage"
     PREVENTION_READ = "prevention:read"
     PREVENTION_MANAGE = "prevention:manage"
 
@@ -67,6 +71,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.FEATURES_READ,
             PermissionKey.INTELLIGENCE_READ,
             PermissionKey.MITRE_READ,
+            PermissionKey.ALERTS_TRIAGE,
+            PermissionKey.INCIDENTS_READ,
         }
     ),
     "Senior Analyst": frozenset(
@@ -91,6 +97,9 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.INTELLIGENCE_READ,
             PermissionKey.INTELLIGENCE_MATCH,
             PermissionKey.MITRE_READ,
+            PermissionKey.ALERTS_TRIAGE,
+            PermissionKey.INCIDENTS_READ,
+            PermissionKey.INCIDENTS_MANAGE,
         }
     ),
     "Security Administrator": frozenset(
@@ -135,6 +144,10 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.INTELLIGENCE_REVIEW,
             PermissionKey.INTELLIGENCE_MATCH,
             PermissionKey.MITRE_READ,
+            PermissionKey.ALERTS_TRIAGE,
+            PermissionKey.INCIDENTS_READ,
+            PermissionKey.INCIDENTS_CORRELATE,
+            PermissionKey.INCIDENTS_MANAGE,
         }
     ),
     "System Administrator": frozenset(
@@ -149,6 +162,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.EXPLANATIONS_REVIEW,
             PermissionKey.INTELLIGENCE_IMPORT,
             PermissionKey.INTELLIGENCE_REVIEW,
+            PermissionKey.ALERTS_TRIAGE,
+            PermissionKey.INCIDENTS_MANAGE,
         }
     ),
     "Auditor": frozenset(
@@ -172,6 +187,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.EXPLANATIONS_READ,
             PermissionKey.INTELLIGENCE_READ,
             PermissionKey.MITRE_READ,
+            PermissionKey.INCIDENTS_READ,
         }
     ),
 }

@@ -15,6 +15,14 @@ from aegis_services.ml import (
 )
 from aegis_services.synthetic import SYNTHETIC_LIMITATIONS, build_synthetic_dataset
 
+# Vendored dependency directories ship their own pickle fixtures; they are not
+# produced by the training pipeline and must not fail the safe-format guard.
+_VENDOR_DIRS = frozenset({".venv", "venv", "env", "site-packages", "node_modules", ".git"})
+
+
+def _stray_pickles(pattern: str) -> list[Path]:
+    return [path for path in Path(".").glob(pattern) if _VENDOR_DIRS.isdisjoint(path.parts)]
+
 
 @pytest.fixture(scope="module")
 def trained(tmp_path_factory: pytest.TempPathFactory):  # type: ignore[no-untyped-def]
@@ -51,8 +59,11 @@ def test_training_produces_only_two_unreviewed_onnx_candidates(trained) -> None:
         assert candidate.metadata["scoring_allowed"] is False
         assert candidate.metadata["loadable_by_api"] is False
         assert candidate.metadata["limitations"] == SYNTHETIC_LIMITATIONS
-        assert not list(Path(".").glob("**/*.pkl"))
-        assert not list(Path(".").glob("**/*.joblib"))
+        # Safe-format guard: the pipeline must emit no pickled estimator anywhere in
+        # the repo. Vendored dependency dirs (a local .venv, node_modules) ship their
+        # own .pkl/.joblib fixtures and are not produced by us, so they are excluded.
+        assert not _stray_pickles("**/*.pkl")
+        assert not _stray_pickles("**/*.joblib")
 
 
 def test_onnx_is_fixed_float32_closed_policy_and_probability_parity(trained) -> None:  # type: ignore[no-untyped-def]

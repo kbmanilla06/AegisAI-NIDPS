@@ -2,8 +2,22 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
+from aegis_services.soc import (
+    SOC_LIMITATIONS,
+    AlertDisposition,
+    AlertStatus,
+    IncidentStatus,
+)
 from aegis_services.synthetic import SYNTHETIC_LIMITATIONS
 
 
@@ -604,6 +618,25 @@ class AlertSummaryOut(BaseModel):
     last_seen: datetime
     created_at: datetime
     rule_version_id: UUID | None
+    # Sprint 8 SOC workflow band.
+    assignee_id: UUID | None = None
+    disposition: str | None = None
+    closed_at: datetime | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def limitations(self) -> str:
+        return SOC_LIMITATIONS
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def prevention_allowed(self) -> bool:
+        return False
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def enforcement_authority(self) -> bool:
+        return False
 
 
 class AlertEvidenceOut(BaseModel):
@@ -868,4 +901,136 @@ class MitreMappingOut(BaseModel):
     confidence: str
     lifecycle_state: str
     limitations: str
+
+
+class AlertOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    fingerprint: str
+    source_type: str
+    category: str
+    severity: str
+    status: str
+    occurrence_count: int
+    assignee_id: UUID | None
+    disposition: str | None
+    closed_at: datetime | None
+    first_seen: datetime
+    last_seen: datetime
     created_at: datetime
+    updated_at: datetime
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def limitations(self) -> str:
+        return SOC_LIMITATIONS
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def prevention_allowed(self) -> bool:
+        return False
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def enforcement_authority(self) -> bool:
+        return False
+
+
+class AlertStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Optimistic lock: the caller states the status it believes it is transitioning from.
+    expected_status: AlertStatus
+    status: AlertStatus
+    disposition: AlertDisposition | None = None
+
+
+class AlertAssign(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    assignee_id: UUID
+
+
+class AlertNoteCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: str = Field(min_length=1, max_length=4096)
+
+
+class AlertNoteOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    alert_id: UUID
+    author_id: UUID
+    body: str
+    created_at: datetime
+
+
+class IncidentCorrelateResponse(BaseModel):
+    created: int
+    updated: int
+    incident_ids: list[UUID]
+    synthetic_demo_only: bool = True
+    prevention_allowed: bool = False
+
+
+class IncidentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    correlation_key: str
+    correlation_version: str
+    category: str
+    status: str
+    owner_id: UUID | None
+    disposition: str | None
+    alert_count: int
+    expires_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def limitations(self) -> str:
+        return SOC_LIMITATIONS
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def prevention_allowed(self) -> bool:
+        return False
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def enforcement_authority(self) -> bool:
+        return False
+
+
+class IncidentTimelineOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    event_type: str
+    detail: dict[str, object]
+    actor_id: UUID | None
+    created_at: datetime
+
+
+class IncidentDetailOut(IncidentOut):
+    member_alert_ids: list[UUID]
+    timeline: list[IncidentTimelineOut]
+
+
+class IncidentStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_status: IncidentStatus
+    status: IncidentStatus
+    disposition: AlertDisposition | None = None
+
+
+class IncidentAssign(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    owner_id: UUID
