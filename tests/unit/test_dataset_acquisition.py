@@ -4,6 +4,7 @@ import hashlib
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
@@ -16,6 +17,21 @@ from aegis_services.datasets import (
     BoundedTransferClient,
     transition_acquisition,
 )
+from aegis_services.datasets import acquisition as _acquisition
+
+
+@pytest.fixture(autouse=True)
+def _ample_free_space(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Report abundant free space so preflight is deterministic on any runner.
+
+    Preflight requires ``protected_free_bytes`` (50 GiB) plus 3x the advertised
+    size; without this stub the transfer tests fail on hosts with <50 GiB free.
+    """
+    monkeypatch.setattr(
+        _acquisition.shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(total=10 * 1024**4, used=0, free=10 * 1024**4),
+    )
 
 
 def _hash(value: str) -> str:
@@ -158,6 +174,29 @@ def test_transfer_deletes_partial_on_size_or_integrity_failure(
             _manifest(state=AcquisitionState.OWNER_APPROVED), "UNSW-NB15_1.csv"
         )
     assert list(root.iterdir()) == []
+
+
+def test_transfer_rejects_insufficient_protected_free_space(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "aegis_services.datasets.acquisition._require_public_dns", lambda _host: None
+    )
+    monkeypatch.setattr(
+        _acquisition.shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(total=10 * 1024**4, used=0, free=1024),
+    )
+    transport = FakeTransport(
+        FakeResponse(b"data", {"content-length": "4", "content-type": "text/csv"})
+    )
+    root = tmp_path / "datasets"
+    with pytest.raises(OSError, match="insufficient protected free space"):
+        BoundedTransferClient(root, transport).transfer(
+            _manifest(state=AcquisitionState.OWNER_APPROVED), "UNSW-NB15_1.csv"
+        )
+    assert not transport.calls
+    assert not root.exists()
 
 
 def test_transfer_rejects_unapproved_redirect_chain(
