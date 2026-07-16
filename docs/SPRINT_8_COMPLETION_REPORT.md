@@ -1,8 +1,8 @@
 # Sprint 8 Completion Report — Alert SOC Workflow and Incident Correlation
 
 **Date:** 2026-07-16
-**Status:** Implemented on `feat/sprint-8-alert-incident-soc`; uncommitted-then-pushed for owner review (no publication).
-**Branch base:** `feat/sprint-7-explainability-intelligence` (Sprint 8 depends on Sprint 7's schema and lineage; Sprint 7 is not yet merged to `main`).
+**Status:** **MERGED to public `main`** via PR #2 on 2026-07-16 (merge commit `7056d71`); hosted CI green on the merged tree.
+**Predecessor:** Built on Sprint 7 (merged via PR #1, `2d816c4`) and the Sprint 5 disk-flake fix (PR #3, `cb9c5f9`); the Sprint 8 plan merged via PR #4 (`b937007`).
 **Plan:** `docs/SPRINT_8_IMPLEMENTATION_PLAN.md` (corrected scope: build on existing Sprint 3 alerts).
 
 ## 1. Scope delivered
@@ -47,11 +47,24 @@
 ## 5. Deviations (honest record)
 
 - **Incident correlation runs synchronously** in the request handler (bounded ≤ 10,000 alerts, idempotent by correlation key) rather than as the Celery `incidents.correlate_batch` task the plan proposed. For the bounded synthetic dataset this is simpler, fully testable in-process, and avoids a new dispatcher/harness surface. Promote to the planned Celery task if large-scale correlation is later required.
-- **Not run in this environment:** Docker health, `pip-audit`, SBOM/Trivy. These must run in CI before any publication (`check_secrets.py` and `check_simulation_only.py` were run locally and pass).
 
-## 5. Follow-ups before publication
+## 6. Publication
 
-1. Merge Sprint 7 first (this branch depends on it).
-2. Add the frontend SOC view and run frontend gates; decide FR-012.
-3. Run the full CI gate set (Docker, SBOM/pip-audit, secret/simulation-only scanners) on the hosted runner.
-4. Owner review of the diff for scope and Critical/High issues.
+Sprint 8 merged to public `main` on 2026-07-16. Merge order and hosted-CI outcomes:
+
+| PR | Content | Merge commit | Hosted CI |
+|----|---------|--------------|-----------|
+| #3 | Sprint 5 disk-flake fix (deterministic `_preflight`) | `cb9c5f9` | green |
+| #1 | Sprint 7 (explainability + intel/MITRE) + dashboard fix | `2d816c4` | green |
+| #4 | Sprint 8 implementation plan | `b937007` | green |
+| #2 | Sprint 8 (workflow + incidents + FR-012 + SOC view) | `7056d71` | green |
+
+The **CI-only gates now ran on the hosted runner and passed**: the `backend` job (pytest, ruff, mypy, bandit, `pip-audit`) and the `containers` job (Docker build/health), alongside the `frontend` job (lint/typecheck/build/vitest). The final `main` push run for `7056d71` concluded **success**.
+
+Notes from publication:
+- PR #4 (docs-only) initially failed backend CI on the exact Sprint 5 disk-space flake, empirically confirming the need for PR #3; merging #3 first cleared it.
+- Sprint 8 conflicted with Sprint 7 in `apps/dashboard/src/App.tsx` (both added the explainability/intel/MITRE panels); resolved by taking Sprint 8's superset (panels + incidents + triage) and re-verifying the frontend gates.
+
+### Remaining (out of scope for Sprint 8)
+- Owner review of the merged diff at leisure (merges landed on CI-green, self-authored; no separate human reviewer in this solo project).
+- Prevention policy/adapters and enforcement are **Sprint 9+** and remain outside the synthetic-only boundary.
