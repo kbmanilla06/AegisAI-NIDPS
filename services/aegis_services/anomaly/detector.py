@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import tempfile
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,7 +16,12 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.ensemble import IsolationForest
 
-from aegis_services.features import FeatureSchemaV1, canonical_hash
+from aegis_services.features import (
+    FeatureDefinitionV1,
+    FeatureSchemaV1,
+    FeatureVectorV1,
+    canonical_hash,
+)
 from aegis_services.synthetic import SyntheticBuildResult, SyntheticLabel
 
 from .schema import ANOMALY_LIMITATIONS, AnomalyDetectorManifestV1, AnomalyThresholdV1
@@ -71,30 +77,51 @@ class AnomalyBuildResult:
     test_flags: tuple[bool, ...]
 
 
-def _matrix(result: SyntheticBuildResult, schema: FeatureSchemaV1) -> np.ndarray:
-    if len(schema.features) != 39 or len(result.vectors) != 7200:
+def _encode_row(
+    vector: FeatureVectorV1,
+    definitions: dict[str, FeatureDefinitionV1],
+    expected: list[str],
+) -> list[float]:
+    if list(vector.ordered_names) != expected:
+        raise ValueError("anomaly_feature_order_mismatch")
+    row: list[float] = []
+    for name, value in zip(vector.ordered_names, vector.ordered_values, strict=True):
+        definition = definitions[name]
+        if definition.dtype == "category":
+            token = str(value)
+            row.append(
+                float(definition.categories.index(token)) if token in definition.categories else 1.0
+            )
+        else:
+            row.append(float(value))
+    return row
+
+
+def encode_feature_matrix(
+    vectors: Sequence[FeatureVectorV1], schema: FeatureSchemaV1
+) -> np.ndarray:
+    """Encode an ordered sequence of feature vectors into a float32 matrix.
+
+    Shares the exact Sprint 6 categorical/numeric encoding so downstream
+    offline consumers (for example Sprint 7 explainability) cannot diverge
+    from the detector's feature representation.
+    """
+    if len(schema.features) != 39:
         raise ValueError("anomaly_feature_contract_mismatch")
     definitions = {item.name: item for item in schema.features}
     expected = [item.name for item in schema.features]
-    rows: list[list[float]] = []
-    for vector in result.vectors:
-        if list(vector.ordered_names) != expected:
-            raise ValueError("anomaly_feature_order_mismatch")
-        row: list[float] = []
-        for name, value in zip(vector.ordered_names, vector.ordered_values, strict=True):
-            definition = definitions[name]
-            if definition.dtype == "category":
-                token = str(value)
-                row.append(
-                    float(definition.categories.index(token))
-                    if token in definition.categories
-                    else 1.0
-                )
-            else:
-                row.append(float(value))
-        rows.append(row)
+    rows = [_encode_row(vector, definitions, expected) for vector in vectors]
     matrix = np.asarray(rows, dtype=np.float32)
-    if matrix.shape != (7200, 39) or not np.isfinite(matrix).all():
+    if matrix.ndim != 2 or matrix.shape[1] != 39 or not np.isfinite(matrix).all():
+        raise ValueError("anomaly_matrix_invalid")
+    return matrix
+
+
+def _matrix(result: SyntheticBuildResult, schema: FeatureSchemaV1) -> np.ndarray:
+    if len(result.vectors) != 7200:
+        raise ValueError("anomaly_feature_contract_mismatch")
+    matrix = encode_feature_matrix(result.vectors, schema)
+    if matrix.shape != (7200, 39):
         raise ValueError("anomaly_matrix_invalid")
     return matrix
 
@@ -382,7 +409,18 @@ def evaluate_anomaly_scores(
     del model
     session = ort.InferenceSession(candidate.model_bytes, providers=["CPUExecutionProvider"])
     input_name = session.get_inputs()[0].name
-    raw = np.asarray(session.run(None, {input_name: matrix.astype(np.float32)})[0]).reshape(-1)
+    output_name = session.get_outputs()[0].name
+    # The approved candidate graph has a fixed [1, 39] input, so score one row at
+    # a time; this yields identical single-row results and supports bounded batches.
+    values: list[float] = []
+    for row in matrix:
+        result = np.asarray(
+            session.run([output_name], {input_name: row.reshape(1, -1).astype(np.float32)})[0]
+        ).reshape(-1)
+        if len(result) != 1:
+            raise ValueError("anomaly_onnx_output_forbidden")
+        values.append(float(result[0]))
+    raw = np.asarray(values, dtype=np.float64)
     if not np.isfinite(raw).all():
         raise ValueError("anomaly_runtime_non_finite")
     # The stored score anchors are the contract; an ONNX runtime result is bounded

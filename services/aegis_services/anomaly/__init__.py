@@ -4,6 +4,7 @@ from .detector import (
     GATE_5SA_HASHES,
     AnomalyBuildResult,
     build_anomaly_candidate,
+    encode_feature_matrix,
     evaluate_anomaly_scores,
     validate_anomaly_onnx,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "SignalSource",
     "build_anomaly_candidate",
     "default_fusion_policy",
+    "encode_feature_matrix",
     "evaluate_anomaly_scores",
     "fuse_assessment",
     "validate_anomaly_onnx",
