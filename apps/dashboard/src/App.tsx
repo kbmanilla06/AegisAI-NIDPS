@@ -55,6 +55,16 @@ type Alert = {
   occurrence_count: number;
   first_seen: string;
   last_seen: string;
+  assignee_id?: string | null;
+  disposition?: string | null;
+};
+type Incident = {
+  id: string;
+  category: string;
+  status: string;
+  alert_count: number;
+  disposition: string | null;
+  limitations: string;
 };
 type FeatureDefinition = { name: string; dtype: string; unit: string; missing_policy: string };
 type FeatureSchema = {
@@ -149,6 +159,7 @@ export function App() {
   const [indicators, setIndicators] = useState<Indicator[]>([]);
   const [matchBatches, setMatchBatches] = useState<MatchBatch[]>([]);
   const [mitreCatalogs, setMitreCatalogs] = useState<MitreTechniqueCatalog[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
 
   const can = (permission: string) => auth?.permissions.includes(permission) ?? false;
 
@@ -193,6 +204,21 @@ export function App() {
       void apiRequest<AnomalyDetector[]>("/anomaly/detectors").then(setAnomalyDetectors);
       void apiRequest<EnsemblePolicy[]>("/anomaly/policies").then(setEnsemblePolicies);
       void apiRequest<AssessmentBatch[]>("/anomaly/assessments").then(setAssessmentBatches);
+    }
+    if (auth.permissions.includes("explanations:read")) {
+      void apiRequest<ExplanationMethod[]>("/explainability/methods").then(setExplanationMethods);
+      void apiRequest<ExplanationBatch[]>("/explainability/batches").then(setExplanationBatches);
+    }
+    if (auth.permissions.includes("intelligence:read")) {
+      void apiRequest<IntelligenceSource[]>("/intelligence/sources").then(setIntelSources);
+      void apiRequest<Indicator[]>("/intelligence/indicators").then(setIndicators);
+      void apiRequest<MatchBatch[]>("/intelligence/match-batches").then(setMatchBatches);
+    }
+    if (auth.permissions.includes("mitre:read")) {
+      void apiRequest<MitreTechniqueCatalog[]>("/intelligence/mitre/techniques").then(setMitreCatalogs);
+    }
+    if (auth.permissions.includes("incidents:read")) {
+      void apiRequest<Incident[]>("/incidents").then(setIncidents);
     }
     if (auth.permissions.includes("alerts:read")) {
       const refresh = () => void apiRequest<Alert[]>("/alerts").then(setAlerts);
@@ -375,6 +401,29 @@ export function App() {
     setRules((items) => items.map((item) => item.rule_key === activated.rule_key
       ? { ...item, is_active: item.id === activated.id }
       : item));
+  }
+
+  async function setAlertWorkflow(alert: Alert, status: string, disposition?: string) {
+    await apiRequest<Alert>(`/alerts/${alert.id}/status`, {
+      method: "POST",
+      csrfToken,
+      body: JSON.stringify({ expected_status: alert.status, status, disposition: disposition ?? null }),
+    });
+    void apiRequest<Alert[]>("/alerts").then(setAlerts);
+  }
+
+  async function correlateIncidents() {
+    await apiRequest<unknown>("/incidents/correlate", { method: "POST", csrfToken });
+    void apiRequest<Incident[]>("/incidents").then(setIncidents);
+  }
+
+  async function setIncidentWorkflow(incident: Incident, status: string, disposition?: string) {
+    await apiRequest<Incident>(`/incidents/${incident.id}/status`, {
+      method: "POST",
+      csrfToken,
+      body: JSON.stringify({ expected_status: incident.status, status, disposition: disposition ?? null }),
+    });
+    void apiRequest<Incident[]>("/incidents").then(setIncidents);
   }
 
   async function materializeFeatures(event: FormEvent<HTMLFormElement>) {
@@ -570,10 +619,85 @@ export function App() {
                 <ul>
                   {alerts.map((alert) => (
                     <li key={alert.id}>
-                      {alert.severity} · {alert.category} · {alert.source_type} · occurrences {alert.occurrence_count}
+                      {alert.severity} · {alert.category} · {alert.source_type} · {alert.status}
+                      {alert.disposition ? ` (${alert.disposition})` : ""} · occurrences {alert.occurrence_count}
+                      {can("alerts:triage") && alert.status === "new" && (
+                        <button type="button" onClick={() => void setAlertWorkflow(alert, "acknowledged")}>Acknowledge</button>
+                      )}
+                      {can("alerts:triage") && alert.status === "acknowledged" && (
+                        <>
+                          <button type="button" onClick={() => void setAlertWorkflow(alert, "investigating")}>Investigate</button>
+                          <button type="button" onClick={() => void setAlertWorkflow(alert, "closed", "false_positive")}>Close (FP)</button>
+                        </>
+                      )}
+                      {can("alerts:triage") && alert.status === "investigating" && (
+                        <button type="button" onClick={() => void setAlertWorkflow(alert, "closed", "false_positive")}>Close (FP)</button>
+                      )}
                     </li>
                   ))}
                 </ul>
+              </section>
+            )}
+
+            {can("explanations:read") && (
+              <section className="panel" aria-labelledby="explanations-title">
+                <h2 id="explanations-title">Offline explainability</h2>
+                <ul>
+                  {explanationMethods.map((method) => (
+                    <li key={method.id}>
+                      {method.method} · {method.target_algorithm} · top-{method.top_k} · {method.lifecycle_state}
+                    </li>
+                  ))}
+                </ul>
+                <p role="status">Batches: {explanationBatches.length}</p>
+              </section>
+            )}
+
+            {can("intelligence:read") && (
+              <section className="panel" aria-labelledby="intelligence-title">
+                <h2 id="intelligence-title">Threat intelligence (synthetic)</h2>
+                <ul>
+                  {intelSources.map((source) => (
+                    <li key={source.id}>
+                      {source.name} · trust {source.trust_level} · {source.lifecycle_state}
+                    </li>
+                  ))}
+                </ul>
+                <p role="status">Indicators: {indicators.length} · Match batches: {matchBatches.length}</p>
+                {can("mitre:read") && (
+                  <ul>
+                    {mitreCatalogs.map((catalog) => (
+                      <li key={catalog.id}>MITRE catalog {catalog.catalog_version} · techniques {catalog.techniques.length}</li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+
+            {can("incidents:read") && (
+              <section className="panel" aria-labelledby="incidents-title">
+                <h2 id="incidents-title">Incidents</h2>
+                {can("incidents:correlate") && (
+                  <button type="button" onClick={() => void correlateIncidents()}>Correlate alerts into incidents</button>
+                )}
+                <ul>
+                  {incidents.map((incident) => (
+                    <li key={incident.id}>
+                      {incident.category} · {incident.status}
+                      {incident.disposition ? ` (${incident.disposition})` : ""} · alerts {incident.alert_count}
+                      {can("incidents:manage") && incident.status === "open" && (
+                        <button type="button" onClick={() => void setIncidentWorkflow(incident, "investigating")}>Investigate</button>
+                      )}
+                      {can("incidents:manage") && incident.status === "investigating" && (
+                        <button type="button" onClick={() => void setIncidentWorkflow(incident, "resolved")}>Resolve</button>
+                      )}
+                      {can("incidents:manage") && incident.status === "resolved" && (
+                        <button type="button" onClick={() => void setIncidentWorkflow(incident, "closed", "benign")}>Close (benign)</button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <p className="limitation">{syntheticLimitation}</p>
               </section>
             )}
 

@@ -38,12 +38,16 @@
 - `scripts/check_simulation_only.py`: **pass**. `scripts/check_secrets.py`: **pass**.
 - New Sprint 8 tests: `tests/unit/test_soc_workflow.py` (7), `tests/unit/test_soc_correlation.py` (3), `tests/integration/test_sprint8_api.py` (6) — workflow state machine, note sanitization/redaction, correlation determinism/idempotency, RBAC-negative, CSRF, optimistic-lock conflict, disposition-on-close.
 
-## 4. Deviations and deferred work (honest record)
+## 4. Additional work completed (initially deferred, now done)
 
-- **Incident correlation runs synchronously** in the request handler (bounded ≤ 10,000 alerts, idempotent by correlation key) rather than as the Celery `incidents.correlate_batch` task the plan proposed. Rationale: for the bounded synthetic dataset this is simpler, fully testable in-process, and avoids a new dispatcher/harness surface. If large-scale correlation is later required, promote it to the planned Celery task. **Recorded, not hidden.**
-- **FR-012 live notification channel: deferred.** It is an owner-gated *Should*; SOC views are pull-only for now.
-- **Frontend SOC dashboard view: deferred.** The backend APIs are complete; the `apps/dashboard` SOC view (and its lint/typecheck/build gates) is not implemented in this pass.
-- **Not run in this environment:** frontend `npm` lint/typecheck/build, Docker health, `pip-audit`, `check_secrets.py`, `check_simulation_only.py`. These must run in CI before any publication.
+- **Frontend SOC view:** `apps/dashboard` now renders alert workflow state with triage actions (acknowledge/investigate/close) and an incidents panel (correlate + status management), permission-gated. While wiring this, the Sprint 7 dashboard state (explanations/intelligence/MITRE) was found declared-but-unused (failing `eslint --max-warnings=0` on the Sprint 7 branch) and was completed with fetches + read-only panels. Frontend gates pass: **typecheck, lint, build, and 6 vitest tests** (one existing alert-text assertion updated for the new status display).
+- **FR-012 live notification:** an injectable, best-effort, metadata-only notifier publishes `{event, alert_id, sequence}` to the existing `aegis.alerts` channel on alert workflow changes — never blocks the transition, never carries endpoints/vectors/notes, never triggers prevention. Overridable in tests; asserted in the integration suite.
+- **`test_ml_training` `.pkl`/`.joblib` glob** scoped to exclude vendored dependency dirs (`.venv`, `site-packages`, `node_modules`), preserving the safe-format guard on repo source while tolerating a local in-repo venv.
+
+## 5. Deviations (honest record)
+
+- **Incident correlation runs synchronously** in the request handler (bounded ≤ 10,000 alerts, idempotent by correlation key) rather than as the Celery `incidents.correlate_batch` task the plan proposed. For the bounded synthetic dataset this is simpler, fully testable in-process, and avoids a new dispatcher/harness surface. Promote to the planned Celery task if large-scale correlation is later required.
+- **Not run in this environment:** Docker health, `pip-audit`, SBOM/Trivy. These must run in CI before any publication (`check_secrets.py` and `check_simulation_only.py` were run locally and pass).
 
 ## 5. Follow-ups before publication
 

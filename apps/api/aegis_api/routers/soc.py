@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
@@ -8,6 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from aegis_api.alert_notifier import AlertNotifier, get_alert_notifier
 from aegis_api.audit import record_audit
 from aegis_api.database import get_db
 from aegis_api.errors import ApiError
@@ -35,6 +37,7 @@ async def update_alert_status(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     principal: Annotated[Principal, Depends(require_csrf_permission(PermissionKey.ALERTS_TRIAGE))],
+    notifier: Annotated[AlertNotifier, Depends(get_alert_notifier)],
 ) -> AlertOut:
     row = await db.get(Alert, alert_id)
     if row is None:
@@ -76,6 +79,9 @@ async def update_alert_status(
     )
     await db.commit()
     await db.refresh(row)
+    # FR-012: best-effort metadata-only notification; never blocks the transition.
+    with contextlib.suppress(Exception):
+        await notifier(row.id)
     return AlertOut.model_validate(row)
 
 
@@ -86,6 +92,7 @@ async def assign_alert(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     principal: Annotated[Principal, Depends(require_csrf_permission(PermissionKey.ALERTS_TRIAGE))],
+    notifier: Annotated[AlertNotifier, Depends(get_alert_notifier)],
 ) -> AlertOut:
     row = await db.get(Alert, alert_id)
     if row is None:
@@ -107,6 +114,8 @@ async def assign_alert(
     )
     await db.commit()
     await db.refresh(row)
+    with contextlib.suppress(Exception):
+        await notifier(row.id)
     return AlertOut.model_validate(row)
 
 

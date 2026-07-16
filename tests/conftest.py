@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from aegis_api.alert_notifier import get_alert_notifier
 from aegis_api.anomaly_dispatch import get_anomaly_fit_dispatcher, get_assessment_dispatcher
 from aegis_api.config import Settings, get_settings
 from aegis_api.database import get_db
@@ -47,6 +48,7 @@ class AppHarness:
     dispatched_assessments: list[str]
     dispatched_explanation_batches: list[str]
     dispatched_match_batches: list[str]
+    notified_alert_ids: list[str]
 
     def run(self, operation):  # type: ignore[no-untyped-def]
         async def execute():  # type: ignore[no-untyped-def]
@@ -192,6 +194,12 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
         dispatched_explanation_batches.append
     )
     app.dependency_overrides[get_match_dispatcher] = lambda: dispatched_match_batches.append
+    notified_alert_ids: list[str] = []
+
+    async def _record_notify(alert_id: object) -> None:
+        notified_alert_ids.append(str(alert_id))
+
+    app.dependency_overrides[get_alert_notifier] = lambda: _record_notify
     with TestClient(app, base_url="https://testserver") as client:
         yield AppHarness(
             client,
@@ -205,5 +213,6 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
             dispatched_assessments,
             dispatched_explanation_batches,
             dispatched_match_batches,
+            notified_alert_ids,
         )
     asyncio.run(test_engine.dispose())

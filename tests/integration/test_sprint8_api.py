@@ -63,6 +63,8 @@ def test_alert_workflow_lifecycle_and_disposition(app_harness) -> None:  # type:
     )
     assert ack.status_code == 200, ack.text
     assert ack.json()["status"] == "acknowledged"
+    # FR-012: the workflow change emitted a metadata-only notification for this alert.
+    assert alert_id in app_harness.notified_alert_ids
 
     # acknowledged -> closed requires a disposition
     closed = app_harness.client.post(
