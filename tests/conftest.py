@@ -10,9 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from aegis_api.anomaly_dispatch import get_anomaly_fit_dispatcher, get_assessment_dispatcher
 from aegis_api.config import Settings, get_settings
 from aegis_api.database import get_db
+from aegis_api.explainability_dispatch import get_explanation_dispatcher
 from aegis_api.feature_dispatch import get_feature_dispatcher
 from aegis_api.ingestion_dispatch import get_ingestion_dispatcher
 from aegis_api.ingestion_throttle import get_ingestion_throttle
+from aegis_api.intelligence_dispatch import get_match_dispatcher
 from aegis_api.main import create_app
 from aegis_api.ml_dispatch import get_training_dispatcher
 from aegis_api.models import Base, FeatureSchemaVersion, Permission, Role, RuleVersion, User
@@ -43,6 +45,8 @@ class AppHarness:
     dispatched_training_runs: list[str]
     dispatched_anomaly_fits: list[str]
     dispatched_assessments: list[str]
+    dispatched_explanation_batches: list[str]
+    dispatched_match_batches: list[str]
 
     def run(self, operation):  # type: ignore[no-untyped-def]
         async def execute():  # type: ignore[no-untyped-def]
@@ -176,12 +180,18 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
     dispatched_training_runs: list[str] = []
     dispatched_anomaly_fits: list[str] = []
     dispatched_assessments: list[str] = []
+    dispatched_explanation_batches: list[str] = []
+    dispatched_match_batches: list[str] = []
     app.dependency_overrides[get_ingestion_dispatcher] = lambda: dispatched_jobs.append
     app.dependency_overrides[get_feature_dispatcher] = lambda: dispatched_feature_jobs.append
     app.dependency_overrides[get_synthetic_dispatcher] = lambda: dispatched_synthetic_jobs.append
     app.dependency_overrides[get_training_dispatcher] = lambda: dispatched_training_runs.append
     app.dependency_overrides[get_anomaly_fit_dispatcher] = lambda: dispatched_anomaly_fits.append
     app.dependency_overrides[get_assessment_dispatcher] = lambda: dispatched_assessments.append
+    app.dependency_overrides[get_explanation_dispatcher] = lambda: (
+        dispatched_explanation_batches.append
+    )
+    app.dependency_overrides[get_match_dispatcher] = lambda: dispatched_match_batches.append
     with TestClient(app, base_url="https://testserver") as client:
         yield AppHarness(
             client,
@@ -193,5 +203,7 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
             dispatched_training_runs,
             dispatched_anomaly_fits,
             dispatched_assessments,
+            dispatched_explanation_batches,
+            dispatched_match_batches,
         )
     asyncio.run(test_engine.dispose())

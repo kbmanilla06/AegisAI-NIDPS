@@ -720,3 +720,152 @@ class AssessmentBatchOut(BaseModel):
     expires_at: datetime
     created_at: datetime
     completed_at: datetime | None
+
+
+# --- Sprint 7: explainability and threat-intelligence API contracts ---
+
+
+class ExplanationMethodOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    method: str
+    target_algorithm: str
+    feature_schema_hash: str
+    top_k: int
+    method_hash: str
+    lifecycle_state: str
+    reviewed_by: UUID | None
+    review_reason: str | None
+    limitations: str
+    created_at: datetime
+
+
+class ExplanationMethodCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    top_k: int = Field(default=10, ge=1, le=39)
+
+
+class SprintSevenReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    approved: bool
+    reason: str = Field(min_length=8, max_length=512)
+
+
+class ExplanationBatchCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    method_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    target_model_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class ExplanationBatchOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    status: str
+    method_hash: str
+    target_model_hash: str
+    row_count: int
+    aggregate: dict[str, object]
+    error_code: str | None
+    limitations: str
+    expires_at: datetime
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class ExplanationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    batch_id: UUID
+    source_identity_hash: str
+    subject_score: float
+    baseline_score: float
+    attributions: list[dict[str, object]]
+    analyst_summary: str
+    limitations: str
+    created_at: datetime
+
+
+class IntelligenceSourceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    trust_level: str
+    terms_reference_hash: str
+    enabled: bool
+    source_hash: str
+    lifecycle_state: str
+    reviewed_by: UUID | None
+    limitations: str
+    created_at: datetime
+
+
+class IndicatorOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    source_id: UUID
+    indicator_type: str
+    value_hash: str
+    indicator_hash: str
+    confidence: float
+    first_seen: datetime
+    last_seen: datetime
+    expires_at: datetime
+    lifecycle_state: str
+    limitations: str
+    created_at: datetime
+
+
+class MatchBatchCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class MatchBatchOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    status: str
+    source_hash: str
+    match_count: int
+    aggregate: dict[str, object]
+    error_code: str | None
+    limitations: str
+    expires_at: datetime
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class MitreTechniqueCatalogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    catalog_version: str
+    catalog_hash: str
+    techniques: list[dict[str, object]]
+    lifecycle_state: str
+    created_at: datetime
+
+
+class MitreMappingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    catalog_id: UUID
+    technique_id: str
+    evidence_class: str
+    catalog_hash: str
+    rationale: str
+    mapping_version: str
+    confidence: str
+    lifecycle_state: str
+    limitations: str
+    created_at: datetime

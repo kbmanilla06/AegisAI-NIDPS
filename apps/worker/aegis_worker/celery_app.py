@@ -20,6 +20,7 @@ from aegis_api.detection_processor import (
     pending_detection_runs,
     process_detection_run,
 )
+from aegis_api.explainability_processor import cleanup_explanations, process_explanation_batch
 from aegis_api.feature_processor import (
     cleanup_feature_artifacts,
     mark_feature_failed,
@@ -31,6 +32,10 @@ from aegis_api.ingestion_processor import (
     cleanup_expired_uploads,
     mark_worker_task_failed,
     process_ingestion_job,
+)
+from aegis_api.intelligence_processor import (
+    cleanup_intelligence_matches,
+    process_match_batch,
 )
 from aegis_api.ml_processor import cleanup_model_candidates, process_training_run
 from aegis_api.scoring_processor import cleanup_scoring_results, process_scoring_job
@@ -63,6 +68,8 @@ celery_app.conf.update(
         "aegis.ml.*": {"queue": "ml"},
         "aegis.anomaly.*": {"queue": "ml"},
         "aegis.ensemble.*": {"queue": "ml"},
+        "aegis.explainability.*": {"queue": "ml"},
+        "aegis.intelligence.*": {"queue": "ml"},
     },
     beat_schedule={
         "delete-expired-raw-uploads": {
@@ -105,6 +112,14 @@ celery_app.conf.update(
             "task": "aegis.anomaly.cleanup",
             "schedule": 86400.0,
         },
+        "delete-expired-explanations": {
+            "task": "aegis.explainability.cleanup",
+            "schedule": 86400.0,
+        },
+        "delete-expired-indicator-matches": {
+            "task": "aegis.intelligence.cleanup",
+            "schedule": 86400.0,
+        },
     },
 )
 
@@ -128,6 +143,26 @@ def evaluate_ensemble_batch(batch_id: str) -> None:
 @celery_app.task(name="aegis.anomaly.cleanup")  # type: ignore[untyped-decorator]
 def cleanup_anomaly() -> int:
     return asyncio.run(cleanup_anomaly_artifacts(settings, SessionFactory))
+
+
+@celery_app.task(name="aegis.explainability.generate", time_limit=300, soft_time_limit=270)  # type: ignore[untyped-decorator]
+def generate_explanation_batch(batch_id: str) -> None:
+    asyncio.run(process_explanation_batch(UUID(batch_id), settings, SessionFactory))
+
+
+@celery_app.task(name="aegis.explainability.cleanup")  # type: ignore[untyped-decorator]
+def cleanup_explanation_rows() -> int:
+    return asyncio.run(cleanup_explanations(settings, SessionFactory))
+
+
+@celery_app.task(name="aegis.intelligence.match", time_limit=135, soft_time_limit=120)  # type: ignore[untyped-decorator]
+def run_intelligence_match_batch(batch_id: str) -> None:
+    asyncio.run(process_match_batch(UUID(batch_id), settings, SessionFactory))
+
+
+@celery_app.task(name="aegis.intelligence.cleanup")  # type: ignore[untyped-decorator]
+def cleanup_intelligence() -> int:
+    return asyncio.run(cleanup_intelligence_matches(settings, SessionFactory))
 
 
 async def _run_process(job_id: UUID) -> UUID | None:
