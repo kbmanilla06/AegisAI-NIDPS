@@ -1094,3 +1094,222 @@ class AuditEvent(Base):
     outcome: Mapped[str] = mapped_column(String(16), index=True)
     correlation_id: Mapped[str] = mapped_column(String(64), index=True)
     safe_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+
+# --- Sprint 7: explainability and threat-intelligence metadata (offline, synthetic) ---
+
+
+class ExplanationMethodVersion(Base):
+    """Immutable, hash-bound offline explanation-method metadata."""
+
+    __tablename__ = "explanation_method_versions"
+    __table_args__ = (
+        UniqueConstraint("method_hash", name="uq_explanation_method_hash"),
+        CheckConstraint("top_k BETWEEN 1 AND 39", name="ck_explanation_method_top_k"),
+        CheckConstraint(
+            "lifecycle_state IN ('draft','reviewed','retired')",
+            name="ck_explanation_method_state",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    method: Mapped[str] = mapped_column(String(32))
+    target_algorithm: Mapped[str] = mapped_column(String(32))
+    feature_schema_hash: Mapped[str] = mapped_column(String(64))
+    top_k: Mapped[int] = mapped_column(Integer)
+    method_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    lifecycle_state: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    review_reason: Mapped[str | None] = mapped_column(String(512))
+    limitations: Mapped[str] = mapped_column(String(1024))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ExplanationBatch(Base):
+    __tablename__ = "explanation_batches"
+    __table_args__ = (
+        UniqueConstraint("requested_by", "idempotency_key", name="uq_explanation_actor_key"),
+        CheckConstraint("row_count BETWEEN 0 AND 10000", name="ck_explanation_batch_rows"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    method_hash: Mapped[str] = mapped_column(String(64))
+    target_model_hash: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    row_count: Mapped[int] = mapped_column(Integer, default=0)
+    aggregate: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    limitations: Mapped[str] = mapped_column(String(1024))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Explanation(Base):
+    __tablename__ = "explanations"
+    __table_args__ = (
+        UniqueConstraint("batch_id", "source_identity_hash", name="uq_explanation_batch_source"),
+        CheckConstraint("subject_score BETWEEN 0 AND 1", name="ck_explanation_subject"),
+        CheckConstraint("baseline_score BETWEEN 0 AND 1", name="ck_explanation_baseline"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    batch_id: Mapped[UUID] = mapped_column(
+        ForeignKey("explanation_batches.id", ondelete="RESTRICT"), index=True
+    )
+    method_id: Mapped[UUID] = mapped_column(
+        ForeignKey("explanation_method_versions.id", ondelete="RESTRICT")
+    )
+    explanation_hash: Mapped[str] = mapped_column(String(64))
+    method_hash: Mapped[str] = mapped_column(String(64))
+    target_model_hash: Mapped[str] = mapped_column(String(64))
+    source_identity_hash: Mapped[str] = mapped_column(String(64))
+    subject_score: Mapped[float] = mapped_column()
+    baseline_score: Mapped[float] = mapped_column()
+    attributions: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    analyst_summary: Mapped[str] = mapped_column(String(512))
+    limitations: Mapped[str] = mapped_column(String(1024))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class IntelligenceSource(Base):
+    __tablename__ = "intelligence_sources"
+    __table_args__ = (
+        UniqueConstraint("name", name="uq_intelligence_source_name"),
+        UniqueConstraint("source_hash", name="uq_intelligence_source_hash"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(64))
+    trust_level: Mapped[str] = mapped_column(String(16))
+    terms_reference_hash: Mapped[str] = mapped_column(String(64))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    source_hash: Mapped[str] = mapped_column(String(64))
+    lifecycle_state: Mapped[str] = mapped_column(String(24), default="imported", index=True)
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    review_reason: Mapped[str | None] = mapped_column(String(512))
+    limitations: Mapped[str] = mapped_column(String(1024))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Indicator(Base):
+    __tablename__ = "indicators"
+    __table_args__ = (
+        UniqueConstraint("indicator_hash", name="uq_indicator_hash"),
+        UniqueConstraint(
+            "indicator_type", "value_hash", "source_id", name="uq_indicator_type_value_source"
+        ),
+        CheckConstraint("confidence BETWEEN 0 AND 1", name="ck_indicator_confidence"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    source_id: Mapped[UUID] = mapped_column(
+        ForeignKey("intelligence_sources.id", ondelete="RESTRICT"), index=True
+    )
+    indicator_type: Mapped[str] = mapped_column(String(16))
+    value_hash: Mapped[str] = mapped_column(String(64))
+    indicator_hash: Mapped[str] = mapped_column(String(64))
+    confidence: Mapped[float] = mapped_column()
+    first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    lifecycle_state: Mapped[str] = mapped_column(String(24), default="imported", index=True)
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    limitations: Mapped[str] = mapped_column(String(1024))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class IntelligenceMatchBatch(Base):
+    __tablename__ = "intelligence_match_batches"
+    __table_args__ = (
+        UniqueConstraint("requested_by", "idempotency_key", name="uq_intel_match_actor_key"),
+        CheckConstraint("match_count BETWEEN 0 AND 10000", name="ck_intel_match_count"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    source_hash: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    match_count: Mapped[int] = mapped_column(Integer, default=0)
+    aggregate: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    limitations: Mapped[str] = mapped_column(String(1024))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class IndicatorMatch(Base):
+    __tablename__ = "indicator_matches"
+    __table_args__ = (
+        UniqueConstraint("batch_id", "match_id", name="uq_indicator_match_batch_match"),
+        CheckConstraint(
+            "state IN ('active','expired','allowlist_conflict')",
+            name="ck_indicator_match_state",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    batch_id: Mapped[UUID] = mapped_column(
+        ForeignKey("intelligence_match_batches.id", ondelete="RESTRICT"), index=True
+    )
+    indicator_id: Mapped[UUID] = mapped_column(ForeignKey("indicators.id", ondelete="RESTRICT"))
+    match_id: Mapped[str] = mapped_column(String(64))
+    indicator_hash: Mapped[str] = mapped_column(String(64))
+    source_name: Mapped[str] = mapped_column(String(64))
+    provenance_hash: Mapped[str] = mapped_column(String(64))
+    matched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    state: Mapped[str] = mapped_column(String(24), index=True)
+    limitations: Mapped[str] = mapped_column(String(1024))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MitreTechniqueCatalog(Base):
+    __tablename__ = "mitre_technique_catalog"
+    __table_args__ = (UniqueConstraint("catalog_hash", name="uq_mitre_catalog_hash"),)
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    catalog_version: Mapped[str] = mapped_column(String(16))
+    catalog_hash: Mapped[str] = mapped_column(String(64))
+    techniques: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    lifecycle_state: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MitreMapping(Base):
+    __tablename__ = "mitre_mappings"
+    __table_args__ = (
+        UniqueConstraint(
+            "catalog_id", "technique_id", "evidence_class", name="uq_mitre_mapping_identity"
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    catalog_id: Mapped[UUID] = mapped_column(
+        ForeignKey("mitre_technique_catalog.id", ondelete="RESTRICT"), index=True
+    )
+    technique_id: Mapped[str] = mapped_column(String(16))
+    evidence_class: Mapped[str] = mapped_column(String(64))
+    catalog_hash: Mapped[str] = mapped_column(String(64))
+    rationale: Mapped[str] = mapped_column(String(256))
+    mapping_version: Mapped[str] = mapped_column(String(16))
+    confidence: Mapped[str] = mapped_column(String(16))
+    lifecycle_state: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    limitations: Mapped[str] = mapped_column(String(1024))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
