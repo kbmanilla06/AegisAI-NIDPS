@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+from typing import TYPE_CHECKING
 
-import numpy as np
-
-from aegis_services.anomaly import (
-    AnomalyBuildResult,
-    encode_feature_matrix,
-    evaluate_anomaly_scores,
-)
 from aegis_services.features import FeatureSchemaV1
 from aegis_services.synthetic import SyntheticBuildResult, SyntheticLabel
+
+if TYPE_CHECKING:
+    import numpy as np
+
+    from aegis_services.anomaly import AnomalyBuildResult
 
 from .schema import (
     AttributionDirection,
@@ -26,6 +25,8 @@ _EPSILON = 1e-9
 
 
 def _training_normal_matrix(result: SyntheticBuildResult, schema: FeatureSchemaV1) -> np.ndarray:
+    from aegis_services.anomaly.detector import encode_feature_matrix
+
     rows = [
         vector
         for vector, example in zip(result.vectors, result.examples, strict=True)
@@ -74,6 +75,10 @@ def explain_anomaly_example(
     source_identity_hash: str,
     method: ExplanationMethodV1,
 ) -> ExplanationV1:
+    import numpy as np
+
+    from aegis_services.anomaly.detector import evaluate_anomaly_scores
+
     if instance_row.shape != (39,) or baseline_row.shape != (39,):
         raise ValueError("explanation_instance_shape_invalid")
     if not np.isfinite(instance_row).all() or not np.isfinite(baseline_row).all():
@@ -139,6 +144,10 @@ def explain_anomaly_batch(
     Uses the previously-locked partitions only; the Sprint 6 sealed test is not
     reopened for tuning here, and no model object is loaded or activated.
     """
+    import numpy as np
+
+    from aegis_services.anomaly.detector import encode_feature_matrix
+
     if not 1 <= max_instances <= 10_000:
         raise ValueError("explanation_resource_limit")
     method = explanation_method(schema, top_k=top_k)

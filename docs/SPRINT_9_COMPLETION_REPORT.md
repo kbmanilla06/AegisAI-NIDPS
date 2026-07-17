@@ -56,6 +56,7 @@ A high-effort review of the working tree ran before commit; three real defects w
 1. **Sensitive-target leak through the preview** — `_build_detail` redacted `request.target_value` but returned the preview `representation` (which embeds `target.display`) unredacted, so a read-only Auditor still saw the raw target. Now the representation's target is redacted for non-authoring viewers.
 2. **Rollback of an expired request → HTTP 500** — `rollback_execution` called the transition validator without a status guard; once a request had expired (via the new maintenance sweep), `validate_request_transition(EXPIRED, ROLLED_BACK)` raised an uncaught `ValueError`. Now returns a clean `409 prevention_not_simulated`.
 3. **Concurrent preview → unique-constraint 500** — two simultaneous previews on one draft double-inserted gate results; the commit now catches `IntegrityError` and fails closed to the persisted decision.
+4. **API health failure from eager native-ML imports** — the API image intentionally excludes the optional ML dependency set, but the anomaly and explainability package initializers imported NumPy/ONNX at API startup. Package exports are now lazy; native ML modules load only when worker-side processing calls them. The API and dashboard health checks pass without adding ML dependencies to the API image.
 
 ## 5. Deviations (honest record)
 

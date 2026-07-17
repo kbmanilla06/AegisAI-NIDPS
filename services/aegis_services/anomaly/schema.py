@@ -10,6 +10,20 @@ from aegis_services.synthetic import SYNTHETIC_LIMITATIONS
 
 ANOMALY_LIMITATIONS = SYNTHETIC_LIMITATIONS
 
+# Accepted Gate 5S-A identities are lightweight metadata. Keeping them in the
+# schema module lets the API validate hash bindings without importing NumPy,
+# ONNX, or scikit-learn; those native runtimes remain worker-only dependencies.
+GATE_5SA_HASHES = {
+    "scenario_catalog": "72ba9c2ac4a993dd7c2b1b3b3e0883a342197cc01f7271d4ef8660a5ae2f5d87",
+    "feature_schema": "17d374837008e6153c76c946ad3ac58abb5f516fb0e0e3f23305025fa8bfe114",
+    "dataset_content": "b6bf175b3db704d65efb2fd16e83cca8a6624b4fa23ef753324bceb4aeb84b9a",
+    "feature_artifact": "454a6edc1d4d247f86a1e453cbec6e70ce28b9dd3bca6fe957d54782a101dfb9",
+    "split_manifest": "d85192d2f35db492b5833bab06ca36ff41ac0437faff3ba76262951cb653b895",
+    "training_identity": "25484ad54cfbcd91dfb1312fb2faab07569baf84558acbaacce3484d7ebadea7",
+    "validation_identity": "96116e2b745321f11c0e3d8e753c9b9b0f75a6d5abce2e733f0576f4ff1a770f",
+    "test_identity": "ee45a32898ba678aa51b79b054d5589edb47df4b178a8b55d1fc0c6b21160eb4",
+}
+
 
 class SignalSource(StrEnum):
     SIGNATURE = "signature"
