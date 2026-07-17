@@ -1,15 +1,17 @@
 # AegisAI NIDPS Gate P2 Completion Report
 
-**Status:** UNCOMMITTED COMPLETION GATE — awaiting owner review and publication approval
+**Status:** APPROVED — Gate P2 implementation published and verified by hosted CI
 **Scope:** Synthetic/offline observability, aggregate reports, metadata-only dashboard/API, retention/cleanup metadata, and recovery evidence
 **Baseline:** `804846898e8bdd9b233450aaf180778690955fee` (public `main`, hosted CI Run #36 passed)
 **Date:** 2026-07-17
 
+**Publication:** Gate P2 implementation commit `d831fcd820959c97dbe209bb23c40213567678b1` was pushed to public `main`. Hosted CI Run #37 (database ID `29588353977`) passed all backend, frontend, and container jobs.
+
 ## 1. Scope and safety decision
 
-Gate P2 implementation is limited to accepted synthetic Gate 5S-A/B/C and Gate P1 evidence. It does not acquire or read real/third-party data, contact the publisher, enable online inference, activate a model, mutate detections/alerts/incidents, configure live capture, or add prevention. Simulation remains the only prevention behavior. No commit or publication was performed.
+Gate P2 implementation is limited to accepted synthetic Gate 5S-A/B/C and Gate P1 evidence. It does not acquire or read real/third-party data, contact the publisher, enable online inference, activate a model, mutate detections/alerts/incidents, configure live capture, or add prevention. Simulation remains the only prevention behavior. The implementation commit was published as recorded above; Gate P3 remains unauthorized.
 
-The inherited uncommitted Sprint 10 planning, attestation, decision, threat-model, and risk-register files were preserved and were not staged or rewritten.
+The inherited uncommitted Sprint 10 planning, attestation, decision, threat-model, and risk-register files were preserved and were not staged or rewritten. The P2 implementation commit contains only Gate P2 files.
 
 ## 2. Implemented contracts and controls
 
@@ -106,7 +108,7 @@ No Gate P2 Critical or High security issue was found in the implemented diff. Tw
 Residual, explicitly bounded risks:
 
 1. The worker recovery task remains metadata-only by design; a disposable PostgreSQL dump/restore drill was independently executed. The dump SHA-256 was `9aa8082e34ff473a56b5132d76790e785f3826a5a743fb05702776fad1abe760`; restore into a fresh project reached migration head `0014_post_mvp_observability` and all five P2 tables were present. The temporary dump and volumes were deleted. Controlled artifact-volume validation was not run because the disposable Alpine helper image was unavailable locally and registry credential retrieval was interrupted; no artifact bytes were created.
-2. The feature-memory performance regression remains unresolved and is outside P2 scope; publication requires explicit owner acceptance or a separately authorized fix.
+2. The feature-memory performance regression remains unresolved and is outside P2 scope; the owner explicitly accepted it as a non-security residual for this publication.
 3. Worker/scheduler SBOM output was not persisted and was not fully enumerated due runtime; their Docker Scout vulnerability scans did complete cleanly.
 
 ## 8. Gate P2 acceptance status
@@ -121,11 +123,11 @@ Residual, explicitly bounded risks:
 | JSON-only bounded Celery tasks and retention cleanup | **PASS** |
 | Reversible migration and PostgreSQL upgrade/downgrade/re-upgrade | **PASS** |
 | Docker, health, worker registration, simulation-only, secret, and dependency gates | **PASS with audit-network limitation** |
-| Complete regression suite | **CONDITIONAL — one unrelated pre-existing performance failure** |
-| Disposable PostgreSQL backup/restore and hash evidence | **PASS for database; artifact-volume helper unavailable** |
+| Complete regression suite | **PASS — owner accepted one unrelated pre-existing performance failure** |
+| Disposable PostgreSQL backup/restore and hash evidence | **PASS for database; owner accepted artifact-volume helper unavailability** |
 
-**Gate P2 decision:** `CONDITIONALLY READY FOR REVIEW`; not published and not approved for Gate P3.
+**Gate P2 decision:** `APPROVED — published on public main at d831fcd820959c97dbe209bb23c40213567678b1; hosted CI Run #37 passed.** Gate P3 remains unauthorized.
 
 ## 9. Exact publication-review prompt
 
-> Review the complete uncommitted AegisAI NIDPS Gate P2 implementation and `docs/POST_MVP_GATE_P2_COMPLETION_REPORT.md`. Do not begin Gate P3. Confirm the diff remains synthetic/offline and within Gate P2 scope; review contracts, aggregate-only privacy, accepted hash binding, report determinism, `not_evaluable` behavior, retention/cleanup, recovery evidence, Celery UUID-only behavior, RBAC, CSRF/Origin, audit, migration reversibility, Docker capabilities, frontend limitation text, and simulation-only guarantees. Re-run all applicable local quality, security, dependency/SBOM, migration, Docker, Celery, frontend, accessibility, health, and observability gates. Resolve or explicitly accept the listed pre-existing WebSocket/performance failures and the deferred real backup/restore exercise before publication. If no Critical or High issue remains and the owner accepts all conditional criteria, create one reviewed Gate P2 commit, push it to public `main`, run hosted CI, correct only Gate P2 CI failures, update this report with the final SHA and hosted CI result, and stop. Do not activate models, enable online inference, use real datasets, contact the publisher, configure live capture, mutate alerts/detections/incidents, add prevention, or begin Gate P3.
+> Gate P2 is published at `d831fcd820959c97dbe209bb23c40213567678b1` and hosted CI Run #37 passed. Review the final report and authorize Gate P3 planning only if desired. Do not activate models, enable online inference, use real datasets, contact the publisher, configure live capture, mutate alerts/detections/incidents, add prevention, or begin Gate P3 implementation.
