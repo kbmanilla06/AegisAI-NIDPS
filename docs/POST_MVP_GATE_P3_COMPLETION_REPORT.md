@@ -1,6 +1,6 @@
 # AegisAI NIDPS Post-MVP Gate P3 Completion Report
 
-**Status:** Uncommitted completion gate — ready for owner review; publication is not authorized.
+**Status:** Gate P3 publication complete; Gate P4 is not authorized.
 
 **Date:** 2026-07-17 (UTC)
 
@@ -28,7 +28,8 @@ in the final image scans.
 | Baseline subject | `docs: record Gate P2 publication and CI` |
 | Hosted CI baseline | Run #38 recorded as successful in the approved Gate P3 plan/repository evidence (live GitHub lookup was unavailable in this local run) |
 | Branch | `feat/sprint-9-prevention-simulation` |
-| Publication | Not performed; no commit or push authorized |
+| Publication commit | `3013cf07c3b802e4ea614ebc419cc62782c7287e` on public `main` |
+| Hosted CI publication run | Run `29593691056` — **success** (backend, frontend, containers) |
 | Inherited worktree items | Sprint 10 planning/preflight files remain uncommitted and were not changed as part of P3 |
 
 P3 changes are limited to the dashboard base-image pin, the corrected
@@ -161,14 +162,15 @@ under `docs/data/`.
 | Full suite entirely green | **PASS** on final rerun; owner-accepted memory residual remains |
 | Synthetic/simulation-only boundary | **PASS** |
 
-**Gate P3 decision:** **READY FOR OWNER REVIEW / PUBLICATION GATE**, with the
-single owner-accepted non-Critical feature-memory residual above. No commit or
-push was performed.
+**Gate P3 decision:** **APPROVED and published** at
+`3013cf07c3b802e4ea614ebc419cc62782c7287e`; hosted CI Run `29593691056`
+passed. The single owner-accepted non-Critical feature-memory residual remains
+documented. No Gate P4 work is authorized by this report.
 
 ## 8. Residual risks and skipped checks
 
-- Hosted CI Run #38 was accepted as the recorded baseline, but live GitHub
-  status lookup was unavailable in this local environment.
+- Hosted CI Run #38 was the recorded baseline; publication CI Run `29593691056`
+  completed successfully.
 - The WebSocket test should still be observed in hosted CI because its earlier
   local failure was timing-sensitive, although the final local suite passed.
 - The feature-memory threshold remains an owner-accepted development-host
@@ -178,14 +180,21 @@ push was performed.
 - No penetration test against a public network or real enforcement target was
   performed; those capabilities remain prohibited.
 
-## 9. Exact next prompt: publication review
+## 9. Publication record and next boundary
+
+The reviewed Gate P3 implementation commit was pushed to public `main` and its
+hosted workflow passed. The remaining uncommitted files in the working tree are
+inherited Sprint 10 planning/preflight material and are not part of the P3
+publication. Gate P4 remains separately gated.
+
+## 10. Exact next prompt: Gate P4 planning (when separately authorized)
 
 ```text
-Review the complete uncommitted AegisAI NIDPS Gate P3 implementation and docs/POST_MVP_GATE_P3_COMPLETION_REPORT.md.
+Begin AegisAI NIDPS Gate P4 planning only.
 
-Confirm the diff contains only Gate P3 security-hardening and QA changes, excluding inherited Sprint 10 files. Confirm baseline fbb22fbbf5ec42c1c2b4196cd4d7fe45dd4a6f32 and recorded hosted CI Run #38 success. Re-run the applicable local quality, security, migration, recovery, Docker Scout/SBOM, health, Celery, frontend, accessibility, and simulation-only gates. Treat the owner-accepted feature-memory threshold as an explicit residual and observe the previously timing-sensitive WebSocket test in hosted CI unless a new Critical or High issue is found.
+Confirm public main is 3013cf07c3b802e4ea614ebc419cc62782c7287e and hosted CI Run 29593691056 passed. Read all governing documents and the final Gate P3 completion report completely.
 
-If no Critical or High issue remains and the scope is approved, create one reviewed Gate P3 commit containing only Gate P3 files, push it to public main, run hosted CI, correct only Gate P3 CI failures, update the completion report with the final SHA and hosted CI result, and stop.
+Create docs/POST_MVP_GATE_P4_PLAN.md covering the next synthetic/offline scope, requirements, risks, dependencies, acceptance criteria, owner decisions, and the exact implementation authorization prompt.
 
-Do not begin Gate P4, use real datasets, contact the publisher, activate models, enable online inference, configure live capture, mutate alerts/detections/incidents, add firewall or host-state capability, or add real prevention.
+Do not implement code, activate models, enable online inference, use real datasets, contact the publisher, configure live capture, add firewall or host-state capability, mutate alerts/detections/incidents, add prevention, commit, or publish. Preserve all synthetic-only, simulation-only, retention, RBAC, CSRF/Origin, audit, Celery, artifact-integrity, and limitation-flag guarantees. Stop after planning.
 ```
