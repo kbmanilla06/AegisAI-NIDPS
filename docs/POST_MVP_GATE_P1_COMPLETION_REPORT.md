@@ -1,9 +1,12 @@
 # Post-MVP Gate P1 Completion Report
 
-**Status:** Uncommitted remediation review gate — owner review required
-**Completed at:** 2026-07-17T06:02:00Z
+**Status:** APPROVED — published to public `main`
+**Completed at:** 2026-07-17T07:25:30Z
 **Authorized scope:** Synthetic monitoring/drift contracts and analyst-feedback foundations only
 **Baseline:** `ec19068c787e4eedf0c9bef272a95a1c8256afca`; hosted CI Run #32 was previously recorded as passing
+**Gate P1 publication commits:** `9d5e4ed` (reviewed implementation), `301d16a` (hosted-CI formatting correction)
+**Final public-main SHA:** `301d16af3398d0c5bde922469dcd2d462562cb2e`
+**Hosted CI:** Run `29562380063` passed after the failed-job rerun (backend, containers, and frontend all green)
 
 ## 1. Scope outcome
 
@@ -97,7 +100,7 @@ The downgrade refuses to delete live monitoring or feedback evidence. It must be
 | Docker/health checks | Passed in isolated disposable `aegis-p1` Compose project: ARM64 images rebuilt without cache, migration upgraded to `0013_p1_monitoring`, PostgreSQL/Redis/API/dashboard healthy, `/api/v1/health/live` and `/api/v1/health/ready` returned OK; stack and volumes torn down |
 | Frontend lint/typecheck/tests | Passed: ESLint, TypeScript, and 7 Vitest tests |
 | Frontend production build | Passed: Vite build |
-| Accessibility checks | Existing frontend test suite passed; dedicated automated accessibility scan not run |
+| Accessibility checks | Existing frontend test suite passed; dedicated automated accessibility scan not available in the repository toolchain |
 | Database migration execution | Fresh disposable PostgreSQL upgrade, downgrade to `0012_sprint9_prevention_sim`, and re-upgrade to `0013_p1_monitoring` all passed with empty evidence; offline `alembic upgrade head --sql` remains blocked by the pre-existing `0001` literal-rendering issue |
 | Python dependency consistency | Passed: `python -m pip check` reported no broken requirements |
 | Dashboard dependency audit | Passed: `npm audit --omit=dev --audit-level=high` found 0 vulnerabilities |
@@ -118,10 +121,10 @@ No Critical or High issue remains in the reviewed Gate P1 application or rebuilt
 
 ## 8. Gate P1 acceptance status
 
-**CONDITIONALLY COMPLETE — uncommitted remediation review gate.** Functional Gate P1 evidence, remediated Docker images, Docker startup/health, Celery, migration upgrade/downgrade/re-upgrade, frontend checks, Python/npm dependency checks, full local tests, and Docker Scout all pass. Dedicated accessibility scanning and populated-evidence downgrade-refusal testing remain additional publication-review checks. No commit, push, or hosted CI was performed.
+**APPROVED — published.** Functional Gate P1 evidence, remediated Docker images, Docker startup/health, Celery, migration upgrade/downgrade/re-upgrade, frontend checks, Python/npm dependency checks, full local tests, Docker Scout, and hosted CI Run `29562380063` pass. Dedicated accessibility scanning was unavailable in the repository toolchain; populated-evidence downgrade-refusal testing remains a residual review item. No Gate P2 or real enforcement capability was introduced.
 
 ## 9. Exact next authorization prompt
 
-> Review `docs/POST_MVP_GATE_P1_COMPLETION_REPORT.md` and the complete uncommitted Gate P1 remediation diff. Confirm the Docker Scout Critical/High findings are cleared on API, migration, worker, and scheduler images, and rerun the final applicable quality, security, Docker, health, migration, frontend, and accessibility gates. Confirm synthetic-only operation, accepted Gate 5S-A/B/C hashes, limitation text, false-capability flags, RBAC, CSRF/Origin, audit, JSON-only Celery, retention, artifact integrity, and simulation-only boundaries. If no Critical or High issue remains, authorize one reviewed Gate P1 commit, push it to public main, run hosted CI, correct only Gate P1 CI failures, and update this report with the final SHA and CI result. Do not begin Gate P2 or add real datasets, publisher contact, live capture, online inference, model activation, alert/detection/prevention mutation, or real prevention.
+> Gate P1 is published as `301d16af3398d0c5bde922469dcd2d462562cb2e` and hosted CI Run `29562380063` passed. Review the final report and authorize Gate P2 planning only if desired. Do not implement Gate P2, activate models, enable online inference, use real datasets, contact the publisher, configure live capture, mutate alerts/detections/prevention, or add real prevention.
 
-Stop at this uncommitted Gate P1 completion gate and wait for owner review.
+Stop at the Gate P1 publication gate and wait for owner approval.
