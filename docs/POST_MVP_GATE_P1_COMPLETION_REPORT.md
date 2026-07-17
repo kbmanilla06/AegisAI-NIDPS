@@ -4,8 +4,8 @@
 **Completed at:** 2026-07-17T07:25:30Z
 **Authorized scope:** Synthetic monitoring/drift contracts and analyst-feedback foundations only
 **Baseline:** `ec19068c787e4eedf0c9bef272a95a1c8256afca`; hosted CI Run #32 was previously recorded as passing
-**Gate P1 publication commits:** `9d5e4ed` (reviewed implementation), `301d16a` (hosted-CI formatting correction)
-**Final public-main SHA:** `301d16af3398d0c5bde922469dcd2d462562cb2e`
+**Gate P1 publication commits:** `9d5e4ed` (reviewed implementation), `301d16a` (hosted-CI formatting correction), `2cdec5e` (publication record)
+**Final public-main SHA:** `2cdec5ebb98c52ba54c8ec7dbfb0a7114d530e7f`
 **Hosted CI:** Run `29562380063` passed after the failed-job rerun (backend, containers, and frontend all green)
 
 ## 1. Scope outcome
@@ -125,6 +125,6 @@ No Critical or High issue remains in the reviewed Gate P1 application or rebuilt
 
 ## 9. Exact next authorization prompt
 
-> Gate P1 is published as `301d16af3398d0c5bde922469dcd2d462562cb2e` and hosted CI Run `29562380063` passed. Review the final report and authorize Gate P2 planning only if desired. Do not implement Gate P2, activate models, enable online inference, use real datasets, contact the publisher, configure live capture, mutate alerts/detections/prevention, or add real prevention.
+> Gate P1 is published as `2cdec5ebb98c52ba54c8ec7dbfb0a7114d530e7f` and hosted CI Run `29563065550` passed. Review the final report and authorize Gate P2 planning only if desired. Do not implement Gate P2, activate models, enable online inference, use real datasets, contact the publisher, configure live capture, mutate alerts/detections/prevention, or add real prevention.
 
 Stop at the Gate P1 publication gate and wait for owner approval.
