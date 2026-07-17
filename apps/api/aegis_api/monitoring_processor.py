@@ -117,9 +117,7 @@ async def cleanup_monitoring(
         rows = list(
             (
                 await db.scalars(
-                    select(SyntheticMonitoringRun).where(
-                        SyntheticMonitoringRun.expires_at <= now
-                    )
+                    select(SyntheticMonitoringRun).where(SyntheticMonitoringRun.expires_at <= now)
                 )
             ).all()
         )

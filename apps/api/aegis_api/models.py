@@ -1134,9 +1134,7 @@ class SyntheticMonitoringRun(Base):
 
     __tablename__ = "synthetic_monitoring_runs"
     __table_args__ = (
-        UniqueConstraint(
-            "requested_by", "idempotency_key", name="uq_monitoring_actor_idempotency"
-        ),
+        UniqueConstraint("requested_by", "idempotency_key", name="uq_monitoring_actor_idempotency"),
         CheckConstraint(
             "status IN ('pending','processing','succeeded','failed','not_evaluable')",
             name="ck_monitoring_status",

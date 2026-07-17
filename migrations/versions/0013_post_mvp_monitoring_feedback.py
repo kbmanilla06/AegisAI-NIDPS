@@ -108,9 +108,7 @@ def upgrade() -> None:
         sa.CheckConstraint("warning_count >= 0", name="ck_monitoring_warnings"),
         sa.CheckConstraint("critical_count >= 0", name="ck_monitoring_criticals"),
     )
-    op.create_index(
-        "ix_synthetic_monitoring_runs_status", "synthetic_monitoring_runs", ["status"]
-    )
+    op.create_index("ix_synthetic_monitoring_runs_status", "synthetic_monitoring_runs", ["status"])
     op.create_index(
         "ix_synthetic_monitoring_runs_expires_at", "synthetic_monitoring_runs", ["expires_at"]
     )
