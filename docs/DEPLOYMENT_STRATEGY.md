@@ -21,7 +21,7 @@ Sprint 5 pre-acquisition adds strict proposal contracts, append-only proposal me
 
 Non-root users, minimal pinned base images, read-only filesystem where practical, explicit writable volumes, health checks, resource limits, no Docker socket, no privileged mode, no host network, no added firewall capability, private DB/Redis, secret references, and image scanning/SBOM in CI.
 
-Sprint 2 runtime limits are: API 384 MiB/1 CPU/128 PIDs, worker 384 MiB/0.75 CPU/128 PIDs, and scheduler 128 MiB/0.25 CPU/64 PIDs. Each runs as `aegis`, drops all Linux capabilities, and uses a read-only root filesystem. API and worker images pre-create the upload directory as the unprivileged runtime user with mode `0700`; only their controlled artifact volume is writable.
+Runtime limits are: API 384 MiB/1 CPU/128 PIDs, the ML-capable worker 4 GiB/2 CPU/128 PIDs, and scheduler 128 MiB/0.25 CPU/64 PIDs. The larger worker budget is required for the existing offline ONNX/scikit-learn and synthetic batch paths; it is not a capacity or production-performance claim. Each runs as `aegis`, drops all Linux capabilities, and uses a read-only root filesystem. API and worker images pre-create the upload directory as the unprivileged runtime user with mode `0700`; only their controlled artifact volume is writable.
 
 ## Configuration
 
