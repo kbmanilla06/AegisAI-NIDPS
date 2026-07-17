@@ -37,3 +37,7 @@ coverage/
 
 # Logs
 *.log
+
+# Build artifacts
+*.egg-info/
+.coverage.*

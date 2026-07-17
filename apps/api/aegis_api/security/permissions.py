@@ -53,6 +53,7 @@ class PermissionKey(StrEnum):
     INCIDENTS_MANAGE = "incidents:manage"
     PREVENTION_READ = "prevention:read"
     PREVENTION_MANAGE = "prevention:manage"
+    PREVENTION_SIMULATE = "prevention:simulate"
 
 
 ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
@@ -81,6 +82,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.SENSORS_READ,
             PermissionKey.TELEMETRY_READ,
             PermissionKey.PREVENTION_READ,
+            PermissionKey.PREVENTION_SIMULATE,
             PermissionKey.RULES_READ,
             PermissionKey.ALERTS_READ,
             PermissionKey.ALERTS_READ_SENSITIVE,
@@ -122,6 +124,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.DETECTIONS_READ_METRICS,
             PermissionKey.PREVENTION_READ,
             PermissionKey.PREVENTION_MANAGE,
+            PermissionKey.PREVENTION_SIMULATE,
             PermissionKey.FEATURES_READ,
             PermissionKey.FEATURES_MATERIALIZE,
             PermissionKey.FEATURES_REVIEW,

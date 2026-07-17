@@ -12,6 +12,12 @@ from pydantic import (
     model_validator,
 )
 
+from aegis_services.prevention import (
+    FALSE_CAPABILITY_FLAGS,
+    PREVENTION_LIMITATIONS,
+    PreventionActionType,
+    PreventionTargetType,
+)
 from aegis_services.soc import (
     SOC_LIMITATIONS,
     AlertDisposition,
@@ -1034,3 +1040,159 @@ class IncidentAssign(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     owner_id: UUID
+
+
+# ---------------------------------------------------------------------------
+# Sprint 9 prevention simulation (simulation-only; no enforcement).
+# ---------------------------------------------------------------------------
+
+_REDACTED_TARGET = "[redacted-target]"
+
+
+class PreventionPolicyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    version: str
+    definition_hash: str
+    lifecycle: str
+    max_duration_seconds: int
+    created_at: datetime
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def limitations(self) -> str:
+        return PREVENTION_LIMITATIONS
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def false_capability_flags(self) -> dict[str, bool]:
+        return dict(FALSE_CAPABILITY_FLAGS)
+
+
+class PreventionRollbackPlan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    summary: str = Field(min_length=1, max_length=512)
+    steps: list[str] = Field(default_factory=list, max_length=32)
+
+
+class PreventionRequestCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    alert_id: UUID | None = None
+    incident_id: UUID | None = None
+    # Optional supplementary threat-intelligence indicator (never sole proof).
+    indicator_id: UUID | None = None
+    action_type: PreventionActionType
+    target_type: PreventionTargetType
+    target_value: str = Field(min_length=1, max_length=255)
+    reason: str = Field(min_length=1, max_length=1024)
+    # Positive-bounded; the policy maximum is enforced by the Duration gate.
+    duration_seconds: int = Field(gt=0, le=2_592_000)
+    rollback_plan: PreventionRollbackPlan
+
+    @model_validator(mode="after")
+    def _require_evidence_ref(self) -> "PreventionRequestCreate":
+        if self.alert_id is None and self.incident_id is None:
+            raise ValueError("prevention_request_requires_alert_or_incident")
+        return self
+
+
+class GateResultOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    gate_key: str
+    passed: bool
+    reason_code: str
+    evidence_ref: str | None
+
+
+class PreventionPreviewOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    adapter: str
+    representation: dict[str, object]
+    validated_at: datetime
+
+
+class PreventionExecutionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    mode: str
+    result: str
+    verify: dict[str, object]
+    started_at: datetime
+    completed_at: datetime
+
+
+class PreventionRollbackOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    execution_id: UUID
+    result: str
+    requested_at: datetime
+    completed_at: datetime
+
+
+class PreventionRequestOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    status: str
+    action_type: str
+    target_type: str
+    target_value: str
+    reason: str
+    duration_seconds: int
+    expires_at: datetime
+    policy_version_id: UUID
+    alert_id: UUID | None
+    incident_id: UUID | None
+    indicator_id: UUID | None
+    created_at: datetime
+    updated_at: datetime
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def mode(self) -> str:
+        return "simulation"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def limitations(self) -> str:
+        return PREVENTION_LIMITATIONS
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def prevention_allowed(self) -> bool:
+        return False
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def enforcement_authority(self) -> bool:
+        return False
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def false_capability_flags(self) -> dict[str, bool]:
+        return dict(FALSE_CAPABILITY_FLAGS)
+
+    def redacted(self, *, allowed: bool) -> "PreventionRequestOut":
+        """Return a copy with the target hidden when the viewer lacks sensitive read."""
+        if allowed:
+            return self
+        return self.model_copy(update={"target_value": _REDACTED_TARGET})
+
+
+class PreventionRequestDetailOut(BaseModel):
+    model_config = ConfigDict(from_attributes=False)
+
+    request: PreventionRequestOut
+    gate_results: list[GateResultOut]
+    preview: PreventionPreviewOut | None
+    execution: PreventionExecutionOut | None
+    rollback: PreventionRollbackOut | None

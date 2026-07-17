@@ -22,6 +22,7 @@ from aegis_api.routers import (
     ingestion,
     intelligence,
     ml,
+    prevention,
     sensors,
     soc,
     synthetic,
@@ -78,6 +79,7 @@ def create_app(settings_override: Settings | None = None) -> FastAPI:
     app.include_router(intelligence.router)
     app.include_router(soc.router)
     app.include_router(incidents.router)
+    app.include_router(prevention.router)
     app.include_router(detection.ws_router)
     return app
 

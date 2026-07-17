@@ -1412,3 +1412,186 @@ class IncidentTimeline(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
+
+
+class PreventionPolicyVersion(Base):
+    """Immutable, reviewed simulation policy. A change creates a new version."""
+
+    __tablename__ = "prevention_policy_versions"
+    __table_args__ = (
+        UniqueConstraint("name", "version", name="uq_prevention_policy_name_version"),
+        CheckConstraint(
+            "lifecycle IN ('draft','reviewed','retired')",
+            name="ck_prevention_policy_lifecycle",
+        ),
+        CheckConstraint("max_duration_seconds > 0", name="ck_prevention_policy_max_duration"),
+        # Creator and reviewer must differ (separation of duties).
+        CheckConstraint(
+            "reviewed_by IS NULL OR reviewed_by <> created_by",
+            name="ck_prevention_policy_reviewer_distinct",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(128), index=True)
+    version: Mapped[str] = mapped_column(String(32))
+    definition: Mapped[dict[str, Any]] = mapped_column(JSON)
+    definition_hash: Mapped[str] = mapped_column(String(64))
+    max_duration_seconds: Mapped[int] = mapped_column(Integer)
+    lifecycle: Mapped[str] = mapped_column(String(16), default="reviewed", index=True)
+    limitations: Mapped[str] = mapped_column(String(2048))
+    created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AllowlistEntry(Base):
+    """A protected target: a match *denies* a proposed action (policy-critical)."""
+
+    __tablename__ = "allowlist_entries"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    target_type: Mapped[str] = mapped_column(String(32), index=True)
+    target_value: Mapped[str] = mapped_column(String(255), index=True)
+    scope: Mapped[str] = mapped_column(String(32))
+    reason: Mapped[str] = mapped_column(String(512))
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PreventionRequest(Base):
+    """A policy-controlled *proposal*. It never enforces; it references evidence."""
+
+    __tablename__ = "prevention_requests"
+    __table_args__ = (
+        UniqueConstraint("idempotency_key", name="uq_prevention_requests_idempotency"),
+        CheckConstraint("duration_seconds > 0", name="ck_prevention_requests_duration"),
+        CheckConstraint(
+            "status IN ('draft','evaluated','rejected','previewed','simulated',"
+            "'expired','rolled_back')",
+            name="ck_prevention_requests_status",
+        ),
+        # A request must reference an alert or an incident (evidence anchor).
+        CheckConstraint(
+            "alert_id IS NOT NULL OR incident_id IS NOT NULL",
+            name="ck_prevention_requests_evidence_ref",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    alert_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("alerts.id", ondelete="RESTRICT"), index=True
+    )
+    incident_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("incidents.id", ondelete="RESTRICT"), index=True
+    )
+    # Optional supplementary threat-intelligence indicator. It is never sole proof and
+    # is ignored when expired (intelligence-freshness gate, TM-13).
+    indicator_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("indicators.id", ondelete="RESTRICT"), index=True
+    )
+    policy_version_id: Mapped[UUID] = mapped_column(
+        ForeignKey("prevention_policy_versions.id", ondelete="RESTRICT"), index=True
+    )
+    action_type: Mapped[str] = mapped_column(String(48))
+    target_type: Mapped[str] = mapped_column(String(32))
+    target_value: Mapped[str] = mapped_column(String(255))
+    reason: Mapped[str] = mapped_column(String(1024))
+    duration_seconds: Mapped[int] = mapped_column(Integer)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    rollback_plan: Mapped[dict[str, Any]] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(16), default="draft", index=True)
+    limitations: Mapped[str] = mapped_column(String(2048))
+    requested_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class PolicyGateResult(Base):
+    """One deterministic gate decision; the full set is the decision evidence."""
+
+    __tablename__ = "policy_gate_results"
+    __table_args__ = (
+        UniqueConstraint("request_id", "gate_key", name="uq_policy_gate_results_gate"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    request_id: Mapped[UUID] = mapped_column(
+        ForeignKey("prevention_requests.id", ondelete="RESTRICT"), index=True
+    )
+    gate_key: Mapped[str] = mapped_column(String(48))
+    passed: Mapped[bool] = mapped_column(Boolean)
+    reason_code: Mapped[str] = mapped_column(String(64))
+    evidence_ref: Mapped[str | None] = mapped_column(String(128))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PreventionPreviewRecord(Base):
+    """The persisted safe representation. `representation` is data, never a command."""
+
+    __tablename__ = "prevention_previews"
+    __table_args__ = (
+        UniqueConstraint("request_id", name="uq_prevention_previews_request"),
+        CheckConstraint("adapter = 'simulation'", name="ck_prevention_previews_adapter"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    request_id: Mapped[UUID] = mapped_column(
+        ForeignKey("prevention_requests.id", ondelete="RESTRICT")
+    )
+    adapter: Mapped[str] = mapped_column(String(32), default="simulation")
+    representation: Mapped[dict[str, Any]] = mapped_column(JSON)
+    validated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PreventionExecution(Base):
+    """A `simulated` record. `mode` is check-constrained to 'simulation' only."""
+
+    __tablename__ = "prevention_executions"
+    __table_args__ = (
+        UniqueConstraint("request_id", name="uq_prevention_executions_request"),
+        CheckConstraint("mode = 'simulation'", name="ck_prevention_executions_mode"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    request_id: Mapped[UUID] = mapped_column(
+        ForeignKey("prevention_requests.id", ondelete="RESTRICT")
+    )
+    mode: Mapped[str] = mapped_column(String(16), default="simulation")
+    result: Mapped[str] = mapped_column(String(32), default="simulated")
+    verify: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PreventionRollback(Base):
+    """A simulated reversal of a simulated execution (idempotent, unique)."""
+
+    __tablename__ = "prevention_rollbacks"
+    __table_args__ = (UniqueConstraint("execution_id", name="uq_prevention_rollbacks_execution"),)
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    execution_id: Mapped[UUID] = mapped_column(
+        ForeignKey("prevention_executions.id", ondelete="RESTRICT")
+    )
+    result: Mapped[str] = mapped_column(String(32), default="rolled_back")
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

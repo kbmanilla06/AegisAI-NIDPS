@@ -146,6 +146,29 @@ test("shows feature and dataset governance metadata without raw rows or vectors"
   expect(screen.queryByText("192.0.2.10")).not.toBeInTheDocument();
 });
 
+test("shows the prevention view as simulation-only with false-capability flags", async () => {
+  const auth = {
+    user: { id: "u1", email: "senior@example.com", roles: ["Senior Analyst"], is_active: true, version: 1 },
+    permissions: ["prevention:read"],
+  };
+  vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response(JSON.stringify({ status: "ok", prevention_mode: "simulation" }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(auth), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ csrf_token: "csrf-memory-only" }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify([{
+      id: "policy-1", name: "baseline-simulation", version: "1", definition_hash: "c".repeat(64),
+      lifecycle: "reviewed", max_duration_seconds: 86400,
+      limitations: "SIMULATION ONLY. Prevention in this system is a policy-gated simulation.",
+      false_capability_flags: { real_prevention: false, enforcement_authority: false },
+    }]), { status: 200 }));
+  render(<App />);
+  expect(await screen.findByText("Prevention (simulation only)")).toBeInTheDocument();
+  expect(await screen.findByText(/baseline-simulation v1/)).toBeInTheDocument();
+  expect(screen.getByTestId("prevention-false-flags")).toHaveTextContent("real_prevention=false");
+  expect(screen.getByTestId("prevention-false-flags")).toHaveTextContent("enforcement_authority=false");
+  expect(screen.queryByRole("button", { name: /Block|Enforce|Apply/ })).not.toBeInTheDocument();
+});
+
 test("labels every synthetic dataset view as demo-only with no model controls", async () => {
   const auth = {
     user: { id: "u1", email: "auditor@example.com", roles: ["Auditor"], is_active: true, version: 1 },

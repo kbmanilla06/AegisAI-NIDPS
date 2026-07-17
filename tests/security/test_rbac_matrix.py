@@ -183,3 +183,97 @@ def test_every_role_against_protected_create_routes(app_harness: AppHarness, rol
     ingestion_status = 202 if role in {"Security Administrator", "System Administrator"} else 403
     assert ingestion.status_code == ingestion_status, (role, "ingestion")
     assert rule.status_code == inventory_status, (role, "rule version")
+
+
+# Sprint 9: prevention:read holders can view policies; others are denied.
+_PREVENTION_READ_EXPECTED = {
+    "Viewer": 403,
+    "SOC Analyst": 403,
+    "Senior Analyst": 200,
+    "Security Administrator": 200,
+    "System Administrator": 200,
+    "Auditor": 200,
+}
+
+
+@pytest.mark.parametrize(("role", "expected"), _PREVENTION_READ_EXPECTED.items())
+def test_prevention_policies_read_authorization(
+    app_harness: AppHarness, role: str, expected: int
+) -> None:
+    app_harness.login(role)
+    assert app_harness.client.get("/api/v1/prevention/policies").status_code == expected, (
+        role,
+        "prevention policies",
+    )
+
+
+# Only prevention:simulate holders may create a simulation request (no enforcement).
+_PREVENTION_SIMULATE_EXPECTED = {
+    "Viewer": 403,
+    "SOC Analyst": 403,
+    "Senior Analyst": 201,
+    "Security Administrator": 201,
+    "System Administrator": 201,
+    "Auditor": 403,
+}
+
+
+@pytest.mark.parametrize(("role", "expected"), _PREVENTION_SIMULATE_EXPECTED.items())
+def test_prevention_request_create_authorization(
+    app_harness: AppHarness, role: str, expected: int
+) -> None:
+    from datetime import UTC, datetime
+
+    from aegis_api.models import Alert, PreventionPolicyVersion
+    from aegis_services.prevention import (
+        DEFAULT_MAX_DURATION_SECONDS,
+        DEFAULT_POLICY_NAME,
+        DEFAULT_POLICY_VERSION,
+        PREVENTION_LIMITATIONS,
+        default_policy_definition,
+        default_policy_hash,
+    )
+
+    async def seed(db):  # type: ignore[no-untyped-def]
+        now = datetime.now(UTC)
+        alert = Alert(
+            fingerprint="f" * 64,
+            source_type="behavioral_rule",
+            category="port_scan",
+            severity="medium",
+            grouping={"series_key": "s"},
+            first_seen=now,
+            last_seen=now,
+        )
+        db.add(alert)
+        db.add(
+            PreventionPolicyVersion(
+                name=DEFAULT_POLICY_NAME,
+                version=DEFAULT_POLICY_VERSION,
+                definition=default_policy_definition(),
+                definition_hash=default_policy_hash(),
+                max_duration_seconds=DEFAULT_MAX_DURATION_SECONDS,
+                lifecycle="reviewed",
+                limitations=PREVENTION_LIMITATIONS,
+            )
+        )
+        await db.commit()
+        await db.refresh(alert)
+        return str(alert.id)
+
+    alert_id = app_harness.run(seed)
+    _, csrf = app_harness.login(role)
+    resp = app_harness.client.post(
+        "/api/v1/prevention/requests",
+        headers={"Origin": ORIGIN, "X-CSRF-Token": csrf, "Idempotency-Key": f"rbac-{role}"},
+        json={
+            "alert_id": alert_id,
+            "action_type": "temporary_block",
+            "target_type": "external_ip",
+            "target_value": "203.0.113.10",
+            "reason": "RBAC synthetic proposal",
+            "duration_seconds": 300,
+            "rollback_plan": {"summary": "undo"},
+        },
+    )
+    assert resp.status_code == expected, (role, resp.text)

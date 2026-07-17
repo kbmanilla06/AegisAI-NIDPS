@@ -1,6 +1,6 @@
 # Canonical Contract Schemas
 
-**Status:** Implemented through Sprint 8 on `main`: canonical flow v1, Sprint 3 detection, Sprint 4 feature contracts, Sprint 5 synthetic contracts (Gate 5S-A/B/C), Sprint 6 anomaly/fusion assessment contracts, Sprint 7 explanation/intelligence/MITRE contracts (all invariants pinned false), and Sprint 8 alert-workflow and `IncidentV1` contracts. Prevention request/enforcement contracts remain conceptual (Sprint 9+)
+**Status:** Implemented through Sprint 8 on `main`: canonical flow v1, Sprint 3 detection, Sprint 4 feature contracts, Sprint 5 synthetic contracts (Gate 5S-A/B/C), Sprint 6 anomaly/fusion assessment contracts, Sprint 7 explanation/intelligence/MITRE contracts (all invariants pinned false), and Sprint 8 alert-workflow and `IncidentV1` contracts. Sprint 9 implements the prevention **simulation** contracts (`PreventionPolicyVersionV1`, `PreventionRequestV1`, the 13-gate result set, and the data-only preview representation) with `mode` fixed to `simulation` and false-capability flags pinned false. No real-enforcement contract exists; real/lab enforcement remains conceptual (Sprint 10)
 
 ## Common envelope
 

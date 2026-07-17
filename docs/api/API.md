@@ -1,6 +1,6 @@
 # REST and WebSocket API Specification
 
-**Status:** Implemented through Sprint 8 on `main`: identity/inventory, ingestion/flow, detection, feature/dataset metadata, Sprint 5 synthetic (5S-A/B/C), Sprint 6 offline anomaly/fusion, Sprint 7 offline explainability + synthetic threat-intelligence/MITRE, and Sprint 8 alert SOC workflow + incident correlation. All model-adjacent routes are offline/metadata-only and non-activating; prevention/enforcement routes remain design-only (Sprint 9+)
+**Status:** Implemented through Sprint 8 on `main`: identity/inventory, ingestion/flow, detection, feature/dataset metadata, Sprint 5 synthetic (5S-A/B/C), Sprint 6 offline anomaly/fusion, Sprint 7 offline explainability + synthetic threat-intelligence/MITRE, and Sprint 8 alert SOC workflow + incident correlation, and Sprint 9 prevention **simulation** routes (`/prevention/policies|requests|.../preview|.../simulate|executions/.../rollback`, gated by `prevention:read`/`prevention:simulate`). All model-adjacent routes are offline/metadata-only and non-activating; every prevention route is **simulation-only** (no approval route, no real-execution route, no executable-command field, no network/firewall route). Real/lab enforcement remains design-only (Sprint 10)
 **Base:** `/api/v1`
 **Common:** authenticated unless public health; JSON; correlation ID; stable error `{code,message,correlation_id,details?}`; pagination on collections.
 

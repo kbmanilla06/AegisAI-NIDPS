@@ -1,13 +1,22 @@
 from pathlib import Path
 
+# Invocation-specific patterns for real enforcement / OS side effects. These are call
+# forms, never bare words, so a data-only detection regex that *names* these tools
+# (e.g. the prevention preview guard) is not itself a violation.
 FORBIDDEN = (
     'subprocess.run(["iptables"',
     'subprocess.run(["nft"',
+    'subprocess.run(["pfctl"',
+    "subprocess.Popen(",
     'os.system("iptables',
     'os.system("nft',
+    'os.system("pfctl',
+    "socket.socket(",
     "privileged: true",
     "network_mode: host",
     "NET_ADMIN",
+    "NET_RAW",
+    "NET_BROADCAST",
 )
 
 

@@ -1,6 +1,6 @@
 # PostgreSQL Data Design
 
-**Status:** Implemented through Sprint 8 on `main`: Sprint 1 identity, Sprint 2 ingestion/flow, Sprint 3 detection/alert, Sprint 4 feature/dataset metadata, Sprint 5 synthetic (Gate 5S-A/B/C), Sprint 6 anomaly detector/threshold/ensemble-policy + assessment tables (`0009`), Sprint 7 explanation-method/explanation + intelligence-source/indicator/match + MITRE catalog/mapping tables (`0010`), and Sprint 8 alert-workflow columns + `alert_notes`/`incidents`/`incident_alerts`/`incident_timeline` (`0011`). Prevention adapter/enforcement tables remain out of scope (Sprint 9+)
+**Status:** Implemented through Sprint 8 on `main`: Sprint 1 identity, Sprint 2 ingestion/flow, Sprint 3 detection/alert, Sprint 4 feature/dataset metadata, Sprint 5 synthetic (Gate 5S-A/B/C), Sprint 6 anomaly detector/threshold/ensemble-policy + assessment tables (`0009`), Sprint 7 explanation-method/explanation + intelligence-source/indicator/match + MITRE catalog/mapping tables (`0010`), and Sprint 8 alert-workflow columns + `alert_notes`/`incidents`/`incident_alerts`/`incident_timeline` (`0011`). Sprint 9 adds the seven prevention **simulation** tables (`prevention_policy_versions`, `allowlist_entries`, `prevention_requests`, `policy_gate_results`, `prevention_previews`, `prevention_executions`, `prevention_rollbacks`) via `0012`, with `prevention_executions.mode` and `prevention_previews.adapter` check-constrained to the single literal `simulation` (uncommitted, pending owner review). No real prevention adapter/enforcement table exists; real/lab enforcement remains Sprint 10
 
 ## Conventions
 
@@ -112,7 +112,8 @@
 9. Sprint 6 anomaly detector/threshold, ensemble policy, and assessment tables — reversible migration `0009_sprint6_anomaly_ensemble`.
 10. Sprint 7 explanation methods/results, intelligence sources/indicators/matches, and MITRE catalog/mappings — reversible migration `0010_sprint7_explainability_intelligence`.
 11. Sprint 8 alert-workflow columns (status lifecycle unlocked), `alert_notes`, and `incidents`/`incident_alerts`/`incident_timeline` — reversible migration `0011_sprint8_alert_incident_soc`; downgrade refuses while non-`new` alerts or any incidents remain.
+12. Sprint 9 prevention **simulation** tables + the `prevention:simulate` permission and one seeded reviewed baseline policy — reversible migration `0012_sprint9_prevention_sim`; downgrade refuses while any non-terminal request or any execution remains, then removes only Sprint 9 objects (preserving Sprints 0–8).
 
-Deferred (Sprint 9+, not implemented): prevention policies/allowlists/requests/gates/previews/simulation records; configuration/notifications/reports/retention tables; performance indexes/partitioning only after measured query/load evidence.
+Deferred (Sprint 10+, not implemented): any real prevention adapter/enforcement (firewall/network/host-state); configuration/notifications/reports/retention tables; performance indexes/partitioning only after measured query/load evidence.
 
 Every migration requires forward/rollback review, existing-data compatibility, lock-risk analysis, and preservation of audit/model/prevention lineage.
