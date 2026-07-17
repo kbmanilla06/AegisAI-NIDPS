@@ -1,10 +1,17 @@
 # Sprint 9 Completion Report — Simulation-Only Prevention Preview (Level 1)
 
 **Date:** 2026-07-17
-**Status:** **Implemented and locally green; uncommitted, pending owner review** (Gate 9C completion stop). Not published.
+**Status:** **APPROVED — reviewed branch published to the public repository** (Gate 9C). Sprint 10 remains unauthorized.
 **Plan:** `docs/SPRINT_9_IMPLEMENTATION_PLAN.md`.
 **Baseline:** public `main` at `b46a3d8` (release `v0.8.0`, Sprints 0–8 merged and green).
 **Boundary reaffirmed:** synthetic-only, offline, no model activation, no external network — and, new this sprint, **no real prevention adapter, no firewall/network/host-state change; simulation representation and records only.** Real/lab enforcement is **Sprint 10**, separately authorized, and is **not** implemented here.
+
+## Publication review
+
+- Reviewed Sprint 9 baseline: `64eddea` (`feat(prevention): Sprint 9 simulation-only prevention preview (Level 1)`).
+- Availability correction: `025c448cf1abfc9fa52dd037485d0bbc0ef89f87` keeps optional native ML imports worker-lazy so the API image remains free of ML dependencies and passes clean health/readiness checks.
+- Hosted CI Run **#30** completed successfully for `025c448cf1abfc9fa52dd037485d0bbc0ef89f87`: [workflow](https://github.com/kbmanilla06/AegisAI-NIDPS/actions/runs/29551434440).
+- The reviewed branch is authorized for fast-forward publication to public `main`; no history rewrite is required.
 
 ## 1. Scope delivered
 
@@ -67,4 +74,4 @@ A high-effort review of the working tree ran before commit; three real defects w
 ## 5. Boundary / not done (by design)
 
 - No real or lab enforcement; no real adapter; no outbound socket; no OS firewall/network/host-state change; no privileged/host-network/`NET_ADMIN` container; no approval or real-execution route; no executable-command representation. **These are Sprint 10 and are not authorized by this work.**
-- Not committed and not published: the tree stops at the Gate 9C completion gate for owner review. This closes the Sprints 0–9 first release (IDS + simulated IPS).
+- Published scope stops at the Gate 9C completion gate. This closes the Sprints 0–9 first release (IDS + simulated IPS); Sprint 10 remains a separate authorization gate.
