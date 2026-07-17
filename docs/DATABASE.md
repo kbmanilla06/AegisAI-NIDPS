@@ -117,3 +117,7 @@
 Deferred (Sprint 10+, not implemented): any real prevention adapter/enforcement (firewall/network/host-state); configuration/notifications/reports/retention tables; performance indexes/partitioning only after measured query/load evidence.
 
 Every migration requires forward/rollback review, existing-data compatibility, lock-risk analysis, and preservation of audit/model/prevention lineage.
+
+## Post-MVP Gate P2 observability metadata
+
+Migration `0014_post_mvp_observability` adds synthetic-only observability events, SLI snapshots, aggregate report jobs/reports, and disposable recovery-run metadata. These tables store bounded aggregates, accepted synthetic source hashes, canonical report hashes, policy/limitation flags, safe error codes, and expiry timestamps; they never store raw telemetry, endpoint values, model inputs, notes, credentials, paths, or dataset bytes. Report finalization is independently authorized and audited. Cleanup is bounded and idempotent, and downgrade refuses to remove populated evidence tables.

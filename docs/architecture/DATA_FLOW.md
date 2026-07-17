@@ -142,4 +142,8 @@ Invariant: no firewall binary, socket, API credential, privileged container, or 
 - Dataset manifests are retained by version; raw datasets remain outside Git. Controlled feature artifacts expire after 30 days.
 - Synthetic Gate 5S-A canonical-flow, target, and feature artifacts expire after 30 days; immutable manifests, hashes, aggregate reports, and audit remain governance evidence.
 
+## Implemented Gate P2 observability boundary
+
+Accepted synthetic Gate 5S-A/B/C and Gate P1 metadata are read server-side by bounded UUID-only report/recovery tasks. PostgreSQL stores sanitized events, SLI snapshots, deterministic aggregate report payloads, source hashes, retention metadata, and audit references; Redis is disposable coordination only. The dashboard and API expose aggregate evidence and explicit `not_evaluable` states. No raw flow, model input, endpoint value, analyst note, dataset byte, online inference, alert/detection/incident mutation, or prevention side effect crosses this flow.
+
 The approved development periods are: flows 30 days; feature artifacts 30 days; alerts, incidents, analyst notes, and audit records 180 days; generated reports and stored predictions 30 days. Exceptional investigation holds are disabled for the MVP.

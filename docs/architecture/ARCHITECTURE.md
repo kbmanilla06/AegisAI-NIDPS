@@ -119,6 +119,10 @@ Development uses ignored environment configuration; CI uses platform secret stor
 6. Raw input remains untrusted across every boundary.
 7. Sensitive state changes require authorization and audit.
 
+### Gate P2 reporting boundary
+
+The observability component emits bounded local events and deterministic aggregate reports from accepted synthetic Gate 5S-A/B/C and Gate P1 evidence. PostgreSQL is authoritative for report/job/recovery metadata; Redis carries only UUID task references. Report APIs and the dashboard expose aggregate status, hashes, policy versions, retention/recovery outcomes, and safe reason codes. They do not expose raw telemetry, model inputs, endpoint values, analyst notes, paths, or dataset bytes, and cannot mutate detection, alert, incident, model, or prevention state.
+
 ## Deferred architectural decision
 
 React/Vite, Celery, cookie sessions, controlled local artifact storage, repository/license, retention, development-host constraints, and ONNX plus canonical JSON for D-13 are approved. Dataset acquisition remains blocked on exact authenticated publisher metadata and separate file-level owner authorization.

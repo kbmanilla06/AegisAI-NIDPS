@@ -20,6 +20,13 @@ from aegis_services.monitoring import (
     DriftPolicyV1,
     SyntheticMonitoringSnapshotV1,
 )
+from aegis_services.observability import (
+    FALSE_CAPABILITY_FLAGS as OBSERVABILITY_FALSE_CAPABILITY_FLAGS,
+)
+from aegis_services.observability import (
+    OBSERVABILITY_LIMITATIONS,
+    REPORT_TYPES,
+)
 from aegis_services.prevention import (
     FALSE_CAPABILITY_FLAGS,
     PREVENTION_LIMITATIONS,
@@ -650,6 +657,123 @@ class AnalystFeedbackOut(BaseModel):
     limitations: str = MONITORING_LIMITATIONS
     false_capability_flags: dict[str, bool] = MONITORING_FALSE_CAPABILITY_FLAGS
     synthetic_demo_only: bool = True
+
+
+class ObservabilityReportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    report_type: str = Field(pattern=r"^[a-z_]{1,48}$")
+    window_start: datetime
+    window_end: datetime
+
+    @field_validator("report_type")
+    @classmethod
+    def report_type_allowed(cls, value: str) -> str:
+        if value not in REPORT_TYPES:
+            raise ValueError("unsupported observability report type")
+        return value
+
+    @model_validator(mode="after")
+    def window_valid(self) -> "ObservabilityReportRequest":
+        if self.window_end < self.window_start:
+            raise ValueError("report window is invalid")
+        if (self.window_end - self.window_start).days > 31:
+            raise ValueError("report window is too large")
+        return self
+
+
+class ObservabilityFinalizeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=8, max_length=500)
+
+
+class ObservabilityEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    correlation_id: str
+    component: str
+    operation: str
+    status: str
+    duration_ms: float
+    rows: int
+    groups_count: int
+    tasks: int
+    bytes_count: int
+    actor_role: str
+    safe_error_code: str | None
+    policy_version: str
+    evidence_hashes: list[str]
+    limitations: str = OBSERVABILITY_LIMITATIONS
+    false_capability_flags: dict[str, bool] = OBSERVABILITY_FALSE_CAPABILITY_FLAGS
+    expires_at: datetime
+    created_at: datetime
+
+
+class ObservabilitySnapshotOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    window_start: datetime
+    window_end: datetime
+    policy_version: str
+    metrics: dict[str, float]
+    dimensions: dict[str, str]
+    sample_count: int
+    source_hashes: list[str]
+    status: str
+    snapshot_hash: str
+    limitations: str = OBSERVABILITY_LIMITATIONS
+    false_capability_flags: dict[str, bool] = OBSERVABILITY_FALSE_CAPABILITY_FLAGS
+    expires_at: datetime
+    created_at: datetime
+
+
+class ObservabilityReportJobOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    report_type: str
+    status: str
+    report_id: UUID | None
+    error_code: str | None
+    limitations: str = OBSERVABILITY_LIMITATIONS
+    false_capability_flags: dict[str, bool] = OBSERVABILITY_FALSE_CAPABILITY_FLAGS
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class ObservabilityReportOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    report_type: str
+    status: str
+    payload: dict[str, object]
+    report_hash: str
+    source_hashes: list[str]
+    policy_version: str
+    finalized_by: UUID | None
+    finalized_at: datetime | None
+    limitations: str = OBSERVABILITY_LIMITATIONS
+    false_capability_flags: dict[str, bool] = OBSERVABILITY_FALSE_CAPABILITY_FLAGS
+    expires_at: datetime
+    created_at: datetime
+
+
+class ObservabilityRecoveryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    status: str
+    outcome: dict[str, object]
+    safe_error_code: str | None
+    correlation_id: str
+    limitations: str = OBSERVABILITY_LIMITATIONS
+    false_capability_flags: dict[str, bool] = OBSERVABILITY_FALSE_CAPABILITY_FLAGS
+    created_at: datetime
+    completed_at: datetime | None
 
 
 class Severity(StrEnum):

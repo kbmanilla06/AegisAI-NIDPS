@@ -1231,6 +1231,142 @@ class SyntheticAnalystFeedback(Base):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class SyntheticObservabilityEvent(Base):
+    """Sanitized, bounded operational metadata; never raw telemetry."""
+
+    __tablename__ = "synthetic_observability_events"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('succeeded','failed','degraded','not_evaluable')",
+            name="ck_observability_event_status",
+        ),
+        CheckConstraint("duration_ms BETWEEN 0 AND 300000", name="ck_observability_event_duration"),
+        CheckConstraint("rows BETWEEN 0 AND 100000", name="ck_observability_event_rows"),
+        CheckConstraint("groups_count BETWEEN 0 AND 10000", name="ck_observability_event_groups"),
+        CheckConstraint("bytes_count BETWEEN 0 AND 67108864", name="ck_observability_event_bytes"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    correlation_id: Mapped[str] = mapped_column(String(64), index=True)
+    component: Mapped[str] = mapped_column(String(32), index=True)
+    operation: Mapped[str] = mapped_column(String(64), index=True)
+    status: Mapped[str] = mapped_column(String(24), index=True)
+    duration_ms: Mapped[float] = mapped_column()
+    rows: Mapped[int] = mapped_column(Integer, default=0)
+    groups_count: Mapped[int] = mapped_column(Integer, default=0)
+    tasks: Mapped[int] = mapped_column(Integer, default=0)
+    bytes_count: Mapped[int] = mapped_column(BigInteger, default=0)
+    actor_role: Mapped[str] = mapped_column(String(32), default="system")
+    safe_error_code: Mapped[str | None] = mapped_column(String(64))
+    policy_version: Mapped[str] = mapped_column(String(64), default="synthetic-observability/1.0.0")
+    evidence_hashes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    limitations: Mapped[str] = mapped_column(String(1024))
+    false_capability_flags: Mapped[dict[str, bool]] = mapped_column(JSON, default=dict)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SyntheticSLISnapshot(Base):
+    __tablename__ = "synthetic_sli_snapshots"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('succeeded','failed','degraded','not_evaluable')",
+            name="ck_sli_snapshot_status",
+        ),
+        CheckConstraint("sample_count BETWEEN 0 AND 100000", name="ck_sli_snapshot_samples"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    window_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    policy_version: Mapped[str] = mapped_column(String(64))
+    metrics: Mapped[dict[str, Any]] = mapped_column(JSON)
+    dimensions: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)
+    sample_count: Mapped[int] = mapped_column(Integer, default=0)
+    source_hashes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(24), default="succeeded", index=True)
+    snapshot_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    limitations: Mapped[str] = mapped_column(String(1024))
+    false_capability_flags: Mapped[dict[str, bool]] = mapped_column(JSON, default=dict)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SyntheticReportJob(Base):
+    __tablename__ = "synthetic_report_jobs"
+    __table_args__ = (
+        UniqueConstraint("requested_by", "idempotency_key", name="uq_synthetic_report_actor_key"),
+        CheckConstraint(
+            "status IN ('pending','processing','complete','partial','failed','not_evaluable')",
+            name="ck_synthetic_report_job_status",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    report_type: Mapped[str] = mapped_column(String(48), index=True)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    window_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
+    report_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("synthetic_reports.id", ondelete="RESTRICT")
+    )
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class SyntheticReport(Base):
+    __tablename__ = "synthetic_reports"
+    __table_args__ = (
+        UniqueConstraint("report_hash", name="uq_synthetic_report_hash"),
+        CheckConstraint(
+            "status IN ('complete','partial','failed','not_evaluable')",
+            name="ck_synthetic_report_status",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    report_type: Mapped[str] = mapped_column(String(48), index=True)
+    status: Mapped[str] = mapped_column(String(24), index=True)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    report_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    source_hashes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    policy_version: Mapped[str] = mapped_column(String(64))
+    limitations: Mapped[str] = mapped_column(String(1024))
+    false_capability_flags: Mapped[dict[str, bool]] = mapped_column(JSON, default=dict)
+    finalized_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    finalized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SyntheticRecoveryRun(Base):
+    __tablename__ = "synthetic_recovery_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending','processing','succeeded','failed','not_evaluable')",
+            name="ck_synthetic_recovery_status",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
+    outcome: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    safe_error_code: Mapped[str | None] = mapped_column(String(64))
+    correlation_id: Mapped[str] = mapped_column(String(64), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 # --- Sprint 7: explainability and threat-intelligence metadata (offline, synthetic) ---
 
 

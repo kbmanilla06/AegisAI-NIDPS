@@ -120,6 +120,8 @@ type SyntheticTrainingRun = { id: string; dataset_version_id: string; status: st
 type SyntheticCandidate = { id: string; training_run_id: string; algorithm: string; lifecycle_state: string; model_sha256: string; preprocessor_hash: string; evaluation_hash: string; model_card_hash: string; selected: boolean; scoring_allowed: false; };
 type MonitoringRun = { id: string; source_kind: string; status: string; sample_count: number; group_count: number; warning_count: number; critical_count: number; baseline_snapshot_hash: string | null; current_snapshot_hash: string | null; limitations: string; synthetic_demo_only: boolean; };
 type AnalystFeedback = { id: string; monitoring_run_id: string; disposition: string; reason_code: string; status: string; note: string; limitations: string; synthetic_demo_only: boolean; };
+type ObservabilitySummary = { status: string; monitoring_run_count: number; report_count: number; feedback_count: number; limitations: string; false_capability_flags: Record<string, boolean>; synthetic_only: boolean; };
+type ObservabilityReport = { id: string; report_type: string; status: string; report_hash: string; source_hashes: string[]; policy_version: string; limitations: string; false_capability_flags: Record<string, boolean>; finalized_at: string | null; };
 type AnomalyDetector = { id: string; lifecycle_state: string; status: string; algorithm: string; manifest_hash: string | null; model_sha256: string | null; threshold_hash: string | null; safe_metadata: Record<string, unknown>; error_code: string | null; };
 type EnsemblePolicy = { id: string; version: string; policy_hash: string; lifecycle_state: string; limitations: string; };
 type AssessmentBatch = { id: string; status: string; row_count: number; aggregate: Record<string, unknown>; limitations: string; };
@@ -175,6 +177,8 @@ export function App() {
   const [preventionPolicies, setPreventionPolicies] = useState<PreventionPolicy[]>([]);
   const [monitoringRuns, setMonitoringRuns] = useState<MonitoringRun[]>([]);
   const [analystFeedback, setAnalystFeedback] = useState<AnalystFeedback[]>([]);
+  const [observabilitySummary, setObservabilitySummary] = useState<ObservabilitySummary | null>(null);
+  const [observabilityReports, setObservabilityReports] = useState<ObservabilityReport[]>([]);
 
   const can = (permission: string) => auth?.permissions.includes(permission) ?? false;
 
@@ -242,6 +246,10 @@ export function App() {
       void apiRequest<MonitoringRun[]>("/monitoring/runs").then(setMonitoringRuns);
       void apiRequest<AnalystFeedback[]>("/monitoring/feedback").then(setAnalystFeedback);
     }
+    if (auth.permissions.includes("observability:read")) {
+      void apiRequest<ObservabilitySummary>("/observability/summary").then(setObservabilitySummary);
+      void apiRequest<ObservabilityReport[]>("/observability/reports").then(setObservabilityReports);
+    }
     if (auth.permissions.includes("alerts:read")) {
       const refresh = () => void apiRequest<Alert[]>("/alerts").then(setAlerts);
       refresh();
@@ -303,6 +311,8 @@ export function App() {
     setPreventionPolicies([]);
     setMonitoringRuns([]);
     setAnalystFeedback([]);
+    setObservabilitySummary(null);
+    setObservabilityReports([]);
   }
 
   async function createAsset(event: FormEvent<HTMLFormElement>) {
@@ -655,6 +665,26 @@ export function App() {
                   {analystFeedback.map((item) => <li key={item.id}>{item.disposition} · {item.status} · reason {item.reason_code}</li>)}
                 </ul>
                 <p className="limitation">real_dataset_used=false · online_inference_allowed=false · alert_side_effects_allowed=false · prevention_allowed=false</p>
+              </section>
+            )}
+
+            {can("observability:read") && (
+              <section className="panel" aria-labelledby="observability-title">
+                <h2 id="observability-title">Synthetic observability and aggregate reports</h2>
+                <p role="note"><strong>{observabilitySummary?.limitations ?? syntheticLimitation}</strong></p>
+                <p>Offline aggregate evidence only. Not production telemetry, performance validation, or prevention authorization.</p>
+                <p role="status">
+                  Status: {observabilitySummary?.status ?? "not_evaluable"} · monitoring runs {observabilitySummary?.monitoring_run_count ?? 0} · reports {observabilitySummary?.report_count ?? 0} · feedback {observabilitySummary?.feedback_count ?? 0}
+                </p>
+                <ul>
+                  {observabilityReports.map((report) => (
+                    <li key={report.id}>
+                      {report.report_type} · {report.status} · hash {report.report_hash.slice(0, 12)}… · policy {report.policy_version}
+                      {report.finalized_at ? " · finalized" : " · unfinalized"}
+                    </li>
+                  ))}
+                </ul>
+                <p className="limitation">real_dataset_used=false · live_capture_enabled=false · online_inference_allowed=false · prevention_allowed=false</p>
               </section>
             )}
 

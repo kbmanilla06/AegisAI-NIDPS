@@ -150,6 +150,20 @@ No approval or real-execution route exists in the Sprints 0–9 API.
 
 Use 400 schema, 401 unauthenticated, 403 unauthorized, 404 non-disclosing absence, 409 state/idempotency conflict, 413 size, 415 format, 422 semantic validation, 429 limit, 503 dependency/degraded. Authentication defaults are 10 login attempts per IP per 300 seconds and account lockout for 15 minutes after 5 failed attempts. Ingestion defaults are five submissions per identity per 60 seconds, an 8 MiB upload, 10,000 records, 5,000 unique PCAP flows, and a 120-second processing limit.
 
+## Synthetic observability (Gate P2)
+
+| Method/path | Purpose | Permission and controls |
+|---|---|---|
+| GET `/observability/summary` | Aggregate monitoring/report counts | `observability:read`; synthetic limitation and false-capability flags |
+| GET `/observability/series` | Bounded sanitized SLI series | `observability:read`; no raw records or high-cardinality labels |
+| GET `/observability/reports` and `/observability/reports/{id}` | Read aggregate report metadata/content | `observability:read`; opaque UUID IDOR checks; no file download |
+| POST `/observability/reports` | Request an offline aggregate report | `observability:request`; CSRF/Origin, idempotency, closed report catalog, JSON-only UUID task |
+| POST `/observability/reports/{id}/finalize` | Independently finalize a complete/not-evaluable report | `observability:finalize`; CSRF/Origin, reason, distinct reviewer, immutable audit |
+| GET `/observability/feedback-summary` | Disposition counts only | `observability:read`; analyst note text excluded |
+| GET/POST `/observability/recovery` | Read/request disposable recovery evidence | `observability:recovery`; CSRF/Origin for writes, bounded task, audit |
+
+Every response is aggregate-only and includes the exact synthetic-demo limitation and machine-readable false-capability flags. No route activates models, enables online inference, mutates detection/alert/incident state, or invokes prevention.
+
 ## Cookie-session and CSRF policy
 
 The browser receives only an opaque session identifier in a `Secure`, `HttpOnly`, `SameSite=Lax`, path-scoped cookie. The server rotates session identity at authentication and privilege changes, enforces idle and absolute expiry, and supports immediate revocation. Unsafe methods require a session-bound CSRF token in a custom header and a valid same-origin `Origin` value. CORS is disabled by default or restricted to the exact Vite origin in development; credentials are never allowed with wildcard origins.

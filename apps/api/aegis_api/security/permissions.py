@@ -58,6 +58,11 @@ class PermissionKey(StrEnum):
     SYNTHETIC_MONITORING_RUN = "synthetic_monitoring:run"
     SYNTHETIC_FEEDBACK_WRITE = "synthetic_feedback:write"
     SYNTHETIC_FEEDBACK_REVIEW = "synthetic_feedback:review"
+    OBSERVABILITY_READ = "observability:read"
+    OBSERVABILITY_REQUEST = "observability:request"
+    OBSERVABILITY_FINALIZE = "observability:finalize"
+    OBSERVABILITY_RECOVERY = "observability:recovery"
+    OBSERVABILITY_CLEANUP = "observability:cleanup"
 
 
 ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
@@ -80,6 +85,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.MITRE_READ,
             PermissionKey.ALERTS_TRIAGE,
             PermissionKey.INCIDENTS_READ,
+            PermissionKey.OBSERVABILITY_READ,
+            PermissionKey.OBSERVABILITY_REQUEST,
         }
     ),
     "Senior Analyst": frozenset(
@@ -113,6 +120,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.INCIDENTS_MANAGE,
             PermissionKey.SYNTHETIC_FEEDBACK_WRITE,
             PermissionKey.SYNTHETIC_FEEDBACK_REVIEW,
+            PermissionKey.OBSERVABILITY_READ,
+            PermissionKey.OBSERVABILITY_REQUEST,
         }
     ),
     "Security Administrator": frozenset(
@@ -148,6 +157,11 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.SYNTHETIC_MONITORING_RUN,
             PermissionKey.SYNTHETIC_FEEDBACK_WRITE,
             PermissionKey.SYNTHETIC_FEEDBACK_REVIEW,
+            PermissionKey.OBSERVABILITY_READ,
+            PermissionKey.OBSERVABILITY_REQUEST,
+            PermissionKey.OBSERVABILITY_FINALIZE,
+            PermissionKey.OBSERVABILITY_RECOVERY,
+            PermissionKey.OBSERVABILITY_CLEANUP,
             PermissionKey.MODELS_READ,
             PermissionKey.MODELS_REVIEW_SYNTHETIC,
             PermissionKey.MODELS_SCORE_SYNTHETIC,
@@ -166,6 +180,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.INCIDENTS_READ,
             PermissionKey.INCIDENTS_CORRELATE,
             PermissionKey.INCIDENTS_MANAGE,
+            PermissionKey.OBSERVABILITY_FINALIZE,
             PermissionKey.SYNTHETIC_FEEDBACK_WRITE,
             PermissionKey.SYNTHETIC_FEEDBACK_REVIEW,
         }
@@ -184,6 +199,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.INTELLIGENCE_REVIEW,
             PermissionKey.ALERTS_TRIAGE,
             PermissionKey.INCIDENTS_MANAGE,
+            PermissionKey.OBSERVABILITY_FINALIZE,
         }
     ),
     "Auditor": frozenset(
@@ -209,6 +225,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.INTELLIGENCE_READ,
             PermissionKey.MITRE_READ,
             PermissionKey.INCIDENTS_READ,
+            PermissionKey.OBSERVABILITY_READ,
+            PermissionKey.OBSERVABILITY_RECOVERY,
         }
     ),
 }
