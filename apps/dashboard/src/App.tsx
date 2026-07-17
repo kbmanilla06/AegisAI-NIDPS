@@ -118,6 +118,8 @@ type SyntheticDataset = {
 };
 type SyntheticTrainingRun = { id: string; dataset_version_id: string; status: string; selected_algorithm: string | null; selected_candidate_hash: string | null; error_code: string | null; };
 type SyntheticCandidate = { id: string; training_run_id: string; algorithm: string; lifecycle_state: string; model_sha256: string; preprocessor_hash: string; evaluation_hash: string; model_card_hash: string; selected: boolean; scoring_allowed: false; };
+type MonitoringRun = { id: string; source_kind: string; status: string; sample_count: number; group_count: number; warning_count: number; critical_count: number; baseline_snapshot_hash: string | null; current_snapshot_hash: string | null; limitations: string; synthetic_demo_only: boolean; };
+type AnalystFeedback = { id: string; monitoring_run_id: string; disposition: string; reason_code: string; status: string; note: string; limitations: string; synthetic_demo_only: boolean; };
 type AnomalyDetector = { id: string; lifecycle_state: string; status: string; algorithm: string; manifest_hash: string | null; model_sha256: string | null; threshold_hash: string | null; safe_metadata: Record<string, unknown>; error_code: string | null; };
 type EnsemblePolicy = { id: string; version: string; policy_hash: string; lifecycle_state: string; limitations: string; };
 type AssessmentBatch = { id: string; status: string; row_count: number; aggregate: Record<string, unknown>; limitations: string; };
@@ -171,6 +173,8 @@ export function App() {
   const [mitreCatalogs, setMitreCatalogs] = useState<MitreTechniqueCatalog[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [preventionPolicies, setPreventionPolicies] = useState<PreventionPolicy[]>([]);
+  const [monitoringRuns, setMonitoringRuns] = useState<MonitoringRun[]>([]);
+  const [analystFeedback, setAnalystFeedback] = useState<AnalystFeedback[]>([]);
 
   const can = (permission: string) => auth?.permissions.includes(permission) ?? false;
 
@@ -234,6 +238,10 @@ export function App() {
     if (auth.permissions.includes("prevention:read")) {
       void apiRequest<PreventionPolicy[]>("/prevention/policies").then(setPreventionPolicies);
     }
+    if (auth.permissions.includes("synthetic_monitoring:read")) {
+      void apiRequest<MonitoringRun[]>("/monitoring/runs").then(setMonitoringRuns);
+      void apiRequest<AnalystFeedback[]>("/monitoring/feedback").then(setAnalystFeedback);
+    }
     if (auth.permissions.includes("alerts:read")) {
       const refresh = () => void apiRequest<Alert[]>("/alerts").then(setAlerts);
       refresh();
@@ -293,6 +301,8 @@ export function App() {
     setEnsemblePolicies([]);
     setAssessmentBatches([]);
     setPreventionPolicies([]);
+    setMonitoringRuns([]);
+    setAnalystFeedback([]);
   }
 
   async function createAsset(event: FormEvent<HTMLFormElement>) {
@@ -624,6 +634,27 @@ export function App() {
                 <ul>
                   {assessmentBatches.map((batch) => <li key={batch.id}>Offline batch {batch.status} · rows {batch.row_count} · aggregate-only</li>)}
                 </ul>
+              </section>
+            )}
+
+            {can("synthetic_monitoring:read") && (
+              <section className="panel" aria-labelledby="monitoring-title">
+                <h2 id="monitoring-title">Synthetic monitoring and analyst feedback</h2>
+                <p role="note"><strong>{monitoringRuns[0]?.limitations ?? syntheticLimitation}</strong></p>
+                <p>Aggregate-only, offline evidence. Drift is review evidence only and cannot activate models or change alerts, detections, incidents, or prevention.</p>
+                <ul>
+                  {monitoringRuns.map((run) => (
+                    <li key={run.id}>
+                      {run.source_kind} · {run.status} · samples {run.sample_count} · groups {run.group_count} · warnings {run.warning_count} · critical {run.critical_count}
+                      {run.baseline_snapshot_hash ? ` · baseline ${run.baseline_snapshot_hash.slice(0, 12)}…` : ""}
+                    </li>
+                  ))}
+                </ul>
+                <p role="status">Feedback submissions: {analystFeedback.length} · pending review: {analystFeedback.filter((item) => item.status === "submitted").length}</p>
+                <ul>
+                  {analystFeedback.map((item) => <li key={item.id}>{item.disposition} · {item.status} · reason {item.reason_code}</li>)}
+                </ul>
+                <p className="limitation">real_dataset_used=false · online_inference_allowed=false · alert_side_effects_allowed=false · prevention_allowed=false</p>
               </section>
             )}
 

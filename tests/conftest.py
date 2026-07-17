@@ -19,6 +19,7 @@ from aegis_api.intelligence_dispatch import get_match_dispatcher
 from aegis_api.main import create_app
 from aegis_api.ml_dispatch import get_training_dispatcher
 from aegis_api.models import Base, FeatureSchemaVersion, Permission, Role, RuleVersion, User
+from aegis_api.monitoring_dispatch import get_monitoring_dispatcher
 from aegis_api.security.passwords import password_service
 from aegis_api.security.permissions import ROLE_PERMISSION_MATRIX
 from aegis_api.security.throttle import LoginThrottle, get_login_throttle
@@ -46,6 +47,7 @@ class AppHarness:
     dispatched_training_runs: list[str]
     dispatched_anomaly_fits: list[str]
     dispatched_assessments: list[str]
+    dispatched_monitoring_runs: list[str]
     dispatched_explanation_batches: list[str]
     dispatched_match_batches: list[str]
     notified_alert_ids: list[str]
@@ -182,6 +184,7 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
     dispatched_training_runs: list[str] = []
     dispatched_anomaly_fits: list[str] = []
     dispatched_assessments: list[str] = []
+    dispatched_monitoring_runs: list[str] = []
     dispatched_explanation_batches: list[str] = []
     dispatched_match_batches: list[str] = []
     app.dependency_overrides[get_ingestion_dispatcher] = lambda: dispatched_jobs.append
@@ -190,6 +193,7 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
     app.dependency_overrides[get_training_dispatcher] = lambda: dispatched_training_runs.append
     app.dependency_overrides[get_anomaly_fit_dispatcher] = lambda: dispatched_anomaly_fits.append
     app.dependency_overrides[get_assessment_dispatcher] = lambda: dispatched_assessments.append
+    app.dependency_overrides[get_monitoring_dispatcher] = lambda: dispatched_monitoring_runs.append
     app.dependency_overrides[get_explanation_dispatcher] = lambda: (
         dispatched_explanation_batches.append
     )
@@ -211,6 +215,7 @@ def app_harness(tmp_path: Path) -> Iterator[AppHarness]:
             dispatched_training_runs,
             dispatched_anomaly_fits,
             dispatched_assessments,
+            dispatched_monitoring_runs,
             dispatched_explanation_batches,
             dispatched_match_batches,
             notified_alert_ids,

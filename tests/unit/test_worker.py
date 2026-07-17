@@ -1,6 +1,7 @@
 from aegis_worker.celery_app import (
     celery_app,
     evaluate_detection,
+    evaluate_monitoring,
     generate_synthetic_dataset,
     materialize_features,
     ping,
@@ -52,3 +53,12 @@ def test_synthetic_task_envelope_rejects_non_uuid() -> None:
         pass
     else:
         raise AssertionError("malformed task identifier must be rejected")
+
+
+def test_monitoring_task_envelope_rejects_non_uuid() -> None:
+    try:
+        evaluate_monitoring.run("not-a-uuid")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("malformed monitoring task identifier must be rejected")

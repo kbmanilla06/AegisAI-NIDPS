@@ -12,6 +12,14 @@ from pydantic import (
     model_validator,
 )
 
+from aegis_services.monitoring import (
+    FALSE_CAPABILITY_FLAGS as MONITORING_FALSE_CAPABILITY_FLAGS,
+)
+from aegis_services.monitoring import (
+    MONITORING_LIMITATIONS,
+    DriftPolicyV1,
+    SyntheticMonitoringSnapshotV1,
+)
 from aegis_services.prevention import (
     FALSE_CAPABILITY_FLAGS,
     PREVENTION_LIMITATIONS,
@@ -542,6 +550,106 @@ class SyntheticScoringJobOut(BaseModel):
     scoring_allowed: bool = True
     alert_side_effects_allowed: bool = False
     prevention_allowed: bool = False
+
+
+class MonitoringRunCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_kind: str = Field(pattern=r"^[a-z_]+$")
+    baseline: SyntheticMonitoringSnapshotV1
+    current: SyntheticMonitoringSnapshotV1
+    policy: DriftPolicyV1 = Field(default_factory=DriftPolicyV1)
+
+    @model_validator(mode="after")
+    def validate_source(self) -> "MonitoringRunCreate":
+        if (
+            self.source_kind != self.baseline.source_kind
+            or self.source_kind != self.current.source_kind
+        ):
+            raise ValueError("source_kind must match both snapshots")
+        return self
+
+
+class MonitoringRunOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    requested_by: UUID
+    source_kind: str
+    schema_version: str
+    baseline_snapshot_hash: str | None
+    current_snapshot_hash: str | None
+    policy_hash: str | None
+    result: dict[str, object]
+    status: str
+    sample_count: int
+    group_count: int
+    warning_count: int
+    critical_count: int
+    error_code: str | None
+    limitations: str = MONITORING_LIMITATIONS
+    false_capability_flags: dict[str, bool] = MONITORING_FALSE_CAPABILITY_FLAGS
+    synthetic_demo_only: bool = True
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class MonitoringMetricOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    metric_key: str
+    baseline_value: float | None
+    current_value: float | None
+    delta: float | None
+    sample_count: int
+    status: str
+
+
+class FeedbackDisposition(StrEnum):
+    CONFIRMED_SYNTHETIC_INTRUSION = "confirmed_synthetic_intrusion_like"
+    CONFIRMED_SYNTHETIC_BENIGN = "confirmed_synthetic_benign_like"
+    FALSE_POSITIVE = "false_positive_demo"
+    FALSE_NEGATIVE = "false_negative_demo"
+    INSUFFICIENT = "insufficient_evidence"
+    NEEDS_REVIEW = "needs_review"
+
+
+class AnalystFeedbackCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    monitoring_run_id: UUID
+    evidence_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    disposition: FeedbackDisposition
+    reason_code: str = Field(min_length=2, max_length=64, pattern=r"^[a-z0-9_.-]+$")
+    note: str = Field(min_length=1, max_length=1000)
+
+
+class AnalystFeedbackReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    accepted: bool
+    reason: str = Field(min_length=8, max_length=500)
+
+
+class AnalystFeedbackOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    monitoring_run_id: UUID
+    evidence_hash: str
+    disposition: str
+    reason_code: str
+    note: str
+    status: str
+    created_by: UUID
+    reviewed_by: UUID | None
+    review_reason: str | None
+    expires_at: datetime
+    created_at: datetime
+    reviewed_at: datetime | None
+    limitations: str = MONITORING_LIMITATIONS
+    false_capability_flags: dict[str, bool] = MONITORING_FALSE_CAPABILITY_FLAGS
+    synthetic_demo_only: bool = True
 
 
 class Severity(StrEnum):

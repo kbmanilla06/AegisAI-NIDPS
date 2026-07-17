@@ -1129,6 +1129,110 @@ class AuditEvent(Base):
     safe_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
 
+class SyntheticMonitoringRun(Base):
+    """Aggregate-only synthetic drift evidence; it cannot affect detection or prevention."""
+
+    __tablename__ = "synthetic_monitoring_runs"
+    __table_args__ = (
+        UniqueConstraint(
+            "requested_by", "idempotency_key", name="uq_monitoring_actor_idempotency"
+        ),
+        CheckConstraint(
+            "status IN ('pending','processing','succeeded','failed','not_evaluable')",
+            name="ck_monitoring_status",
+        ),
+        CheckConstraint("sample_count BETWEEN 0 AND 10000", name="ck_monitoring_samples"),
+        CheckConstraint("group_count BETWEEN 0 AND 120", name="ck_monitoring_groups"),
+        CheckConstraint("warning_count >= 0", name="ck_monitoring_warnings"),
+        CheckConstraint("critical_count >= 0", name="ck_monitoring_criticals"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    requested_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    source_kind: Mapped[str] = mapped_column(String(32))
+    schema_version: Mapped[str] = mapped_column(String(32), default="synthetic-monitoring/1.0.0")
+    baseline_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON)
+    current_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON)
+    baseline_snapshot_hash: Mapped[str | None] = mapped_column(String(64))
+    current_snapshot_hash: Mapped[str | None] = mapped_column(String(64))
+    policy_hash: Mapped[str | None] = mapped_column(String(64))
+    result: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    sample_count: Mapped[int] = mapped_column(Integer, default=0)
+    group_count: Mapped[int] = mapped_column(Integer, default=0)
+    warning_count: Mapped[int] = mapped_column(Integer, default=0)
+    critical_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    limitations: Mapped[str] = mapped_column(String(1024))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class SyntheticMonitoringMetric(Base):
+    __tablename__ = "synthetic_monitoring_metrics"
+    __table_args__ = (
+        UniqueConstraint("run_id", "metric_key", name="uq_monitoring_run_metric"),
+        CheckConstraint(
+            "status IN ('ok','warning','critical','not_evaluable')",
+            name="ck_monitoring_metric_status",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    run_id: Mapped[UUID] = mapped_column(
+        ForeignKey("synthetic_monitoring_runs.id", ondelete="RESTRICT"), index=True
+    )
+    metric_key: Mapped[str] = mapped_column(String(64))
+    baseline_value: Mapped[float | None] = mapped_column()
+    current_value: Mapped[float | None] = mapped_column()
+    delta: Mapped[float | None] = mapped_column()
+    sample_count: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SyntheticAnalystFeedback(Base):
+    __tablename__ = "synthetic_analyst_feedback"
+    __table_args__ = (
+        CheckConstraint(
+            "disposition IN ('confirmed_synthetic_intrusion_like',"
+            "'confirmed_synthetic_benign_like',"
+            "'false_positive_demo','false_negative_demo','insufficient_evidence','needs_review')",
+            name="ck_synthetic_feedback_disposition",
+        ),
+        CheckConstraint(
+            "status IN ('submitted','reviewed','rejected')", name="ck_synthetic_feedback_status"
+        ),
+        CheckConstraint(
+            "reviewed_by IS NULL OR reviewed_by <> created_by",
+            name="ck_synthetic_feedback_reviewer_distinct",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    monitoring_run_id: Mapped[UUID] = mapped_column(
+        ForeignKey("synthetic_monitoring_runs.id", ondelete="RESTRICT"), index=True
+    )
+    evidence_hash: Mapped[str] = mapped_column(String(64))
+    disposition: Mapped[str] = mapped_column(String(48))
+    reason_code: Mapped[str] = mapped_column(String(64))
+    note: Mapped[str] = mapped_column(String(1000))
+    status: Mapped[str] = mapped_column(String(16), default="submitted", index=True)
+    created_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
+    )
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    review_reason: Mapped[str | None] = mapped_column(String(500))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 # --- Sprint 7: explainability and threat-intelligence metadata (offline, synthetic) ---
 
 

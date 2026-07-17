@@ -75,3 +75,4 @@
 | D-25 | Synthetic governance and claims | System Administrator generates and a distinct Security Administrator reviews exact hashes. Every artifact/report/UI surface carries `synthetic-demo-limitations/v1`; lifecycle has no model or active state; numeric model-performance claims are prohibited. |
 
 The MIT License applies to repository code and documentation only; third-party datasets retain their own terms.
+| C-32 | On 2026-07-17 the owner authorized post-MVP Gate P1 only: synthetic aggregate monitoring/drift evidence and analyst feedback foundations. Monitoring is offline metadata only; it cannot activate models or mutate alerts, detections, incidents, or prevention. P2–P5, real/automatic prevention, live capture, real datasets, publisher contact, and public-network enforcement remain deferred. |

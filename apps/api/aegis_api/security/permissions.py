@@ -54,6 +54,10 @@ class PermissionKey(StrEnum):
     PREVENTION_READ = "prevention:read"
     PREVENTION_MANAGE = "prevention:manage"
     PREVENTION_SIMULATE = "prevention:simulate"
+    SYNTHETIC_MONITORING_READ = "synthetic_monitoring:read"
+    SYNTHETIC_MONITORING_RUN = "synthetic_monitoring:run"
+    SYNTHETIC_FEEDBACK_WRITE = "synthetic_feedback:write"
+    SYNTHETIC_FEEDBACK_REVIEW = "synthetic_feedback:review"
 
 
 ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
@@ -67,6 +71,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.TELEMETRY_READ,
             PermissionKey.RULES_READ,
             PermissionKey.ALERTS_READ,
+            PermissionKey.SYNTHETIC_MONITORING_READ,
+            PermissionKey.SYNTHETIC_FEEDBACK_WRITE,
             PermissionKey.ALERTS_READ_SENSITIVE,
             PermissionKey.DETECTIONS_READ_METRICS,
             PermissionKey.FEATURES_READ,
@@ -90,6 +96,9 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.FEATURES_READ,
             PermissionKey.DATASETS_READ,
             PermissionKey.SYNTHETIC_DATASETS_READ,
+            PermissionKey.SYNTHETIC_MONITORING_READ,
+            PermissionKey.SYNTHETIC_MONITORING_RUN,
+            PermissionKey.SYNTHETIC_FEEDBACK_WRITE,
             PermissionKey.MODELS_READ,
             PermissionKey.MODELS_SCORE_SYNTHETIC,
             PermissionKey.PREDICTIONS_READ,
@@ -102,6 +111,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.ALERTS_TRIAGE,
             PermissionKey.INCIDENTS_READ,
             PermissionKey.INCIDENTS_MANAGE,
+            PermissionKey.SYNTHETIC_FEEDBACK_WRITE,
+            PermissionKey.SYNTHETIC_FEEDBACK_REVIEW,
         }
     ),
     "Security Administrator": frozenset(
@@ -133,6 +144,10 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.DATASETS_ACCEPT,
             PermissionKey.SYNTHETIC_DATASETS_READ,
             PermissionKey.SYNTHETIC_DATASETS_REVIEW,
+            PermissionKey.SYNTHETIC_MONITORING_READ,
+            PermissionKey.SYNTHETIC_MONITORING_RUN,
+            PermissionKey.SYNTHETIC_FEEDBACK_WRITE,
+            PermissionKey.SYNTHETIC_FEEDBACK_REVIEW,
             PermissionKey.MODELS_READ,
             PermissionKey.MODELS_REVIEW_SYNTHETIC,
             PermissionKey.MODELS_SCORE_SYNTHETIC,
@@ -151,6 +166,8 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.INCIDENTS_READ,
             PermissionKey.INCIDENTS_CORRELATE,
             PermissionKey.INCIDENTS_MANAGE,
+            PermissionKey.SYNTHETIC_FEEDBACK_WRITE,
+            PermissionKey.SYNTHETIC_FEEDBACK_REVIEW,
         }
     ),
     "System Administrator": frozenset(
@@ -184,6 +201,7 @@ ROLE_PERMISSION_MATRIX: dict[str, frozenset[PermissionKey]] = {
             PermissionKey.FEATURES_READ,
             PermissionKey.DATASETS_READ,
             PermissionKey.SYNTHETIC_DATASETS_READ,
+            PermissionKey.SYNTHETIC_MONITORING_READ,
             PermissionKey.MODELS_READ,
             PermissionKey.MODELS_SCORE_SYNTHETIC,
             PermissionKey.PREDICTIONS_READ,

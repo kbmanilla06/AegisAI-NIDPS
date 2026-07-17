@@ -38,6 +38,11 @@ from aegis_api.intelligence_processor import (
     process_match_batch,
 )
 from aegis_api.ml_processor import cleanup_model_candidates, process_training_run
+from aegis_api.monitoring_processor import (
+    cleanup_monitoring,
+    mark_monitoring_failed,
+    process_monitoring_run,
+)
 from aegis_api.scoring_processor import cleanup_scoring_results, process_scoring_job
 from aegis_api.synthetic_processor import (
     cleanup_synthetic_artifacts,
@@ -70,6 +75,7 @@ celery_app.conf.update(
         "aegis.ensemble.*": {"queue": "ml"},
         "aegis.explainability.*": {"queue": "ml"},
         "aegis.intelligence.*": {"queue": "ml"},
+        "aegis.monitoring.*": {"queue": "ml"},
     },
     beat_schedule={
         "delete-expired-raw-uploads": {
@@ -120,6 +126,10 @@ celery_app.conf.update(
             "task": "aegis.intelligence.cleanup",
             "schedule": 86400.0,
         },
+        "delete-expired-monitoring-evidence": {
+            "task": "aegis.monitoring.cleanup",
+            "schedule": 86400.0,
+        },
     },
 )
 
@@ -128,6 +138,29 @@ celery_app.conf.update(
 def ping() -> str:
     """Bounded foundation task used only for worker-health verification."""
     return "ok"
+
+
+@celery_app.task(
+    bind=True,
+    name="aegis.monitoring.evaluate",
+    max_retries=1,
+    time_limit=60,
+    soft_time_limit=45,
+)  # type: ignore[untyped-decorator]
+def evaluate_monitoring(task: Task, run_id: str) -> None:
+    parsed_id = UUID(run_id)
+    try:
+        asyncio.run(process_monitoring_run(parsed_id, settings, SessionFactory))
+    except Exception as error:
+        if int(task.request.retries) < int(task.max_retries or 0):
+            raise task.retry(exc=error, countdown=2) from error
+        asyncio.run(mark_monitoring_failed(parsed_id, SessionFactory))
+        raise
+
+
+@celery_app.task(name="aegis.monitoring.cleanup", time_limit=60, soft_time_limit=45)  # type: ignore[untyped-decorator]
+def cleanup_monitoring_evidence() -> int:
+    return asyncio.run(cleanup_monitoring(settings, SessionFactory))
 
 
 @celery_app.task(name="aegis.anomaly.fit", time_limit=180, soft_time_limit=165)  # type: ignore[untyped-decorator]
