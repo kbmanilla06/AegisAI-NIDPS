@@ -5,6 +5,15 @@
 **Scope:** ARM64 local Docker Compose reproducibility and synthetic/offline
 release assurance only
 
+## Publication result
+
+- Reviewed Gate P4 implementation commit: `20a5e4c273045202db9facbe37de086e6ab9dbbb`
+- Hosted CI Run `29675771383`: **passed** (backend, frontend, containers)
+- The implementation commit contains only the six reviewed Gate P4 files;
+  inherited Sprint 10 files remain excluded.
+- This report update is documentation-only; no Gate P5 or prohibited capability
+  was introduced.
+
 ## 1. Baseline and authorization
 
 - Public `main`: `720c5e33960212c6f2130e4ac1fe9a1948b5fcb2`
