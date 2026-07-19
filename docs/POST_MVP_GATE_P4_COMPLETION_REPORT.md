@@ -21,7 +21,9 @@ release assurance only
 - Accepted Gate 5S-A/B/C evidence: unchanged and hash-bound
 - Working tree classification: P4 files are listed below; inherited Sprint 10
   planning/preflight files remain unmodified and excluded
-- Publication: not performed; no commit, push, tag, or release was created
+- Publication: reviewed implementation commit was pushed to public `main`; the
+  report-only follow-ups contain no production capability. No tag or release
+  was created.
 
 ## 2. Scope review
 
@@ -207,5 +209,5 @@ metadata/review documents, and acquisition remains blocked.
 > capability, mutate alerts/detections/incidents, add prevention, or publish
 > anything beyond that separately authorized commit.
 
-Stop at this uncommitted Gate P4 completion gate. No commit or publication was
-performed by this implementation.
+Gate P4 publication is complete. Gate P5 and all prohibited capabilities
+remain unauthorized.
