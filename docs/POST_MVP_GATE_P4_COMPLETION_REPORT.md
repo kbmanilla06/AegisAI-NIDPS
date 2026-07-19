@@ -1,6 +1,6 @@
 # AegisAI NIDPS Post-MVP Gate P4 Completion Report
 
-**Status:** UNCOMMITTED — ready for separate review/publication approval
+**Status:** Gate P4 publication complete; Gate P5 is not authorized
 
 **Scope:** ARM64 local Docker Compose reproducibility and synthetic/offline
 release assurance only
