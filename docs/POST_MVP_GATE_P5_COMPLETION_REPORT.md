@@ -1,6 +1,6 @@
 # AegisAI NIDPS Post-MVP Gate P5 Completion Report
 
-**Status:** Uncommitted Gate P5 completion gate — publication not authorized
+**Status:** Gate P5 published — later gates remain unauthorized
 **Scope:** Portfolio documentation, synthetic-only local demonstration, and
 aggregate evidence only
 
@@ -9,6 +9,8 @@ aggregate evidence only
 - Public `main`: `2e4e3a6d9c927b731237de20847214e75f6a31e8`
 - Hosted CI Run `29675999780`: passed
 - Gate P4 publication: complete
+- Gate P5 publication commit: `61fbd7eca6b3f19a71242e8331f0d084514463b2`
+- Gate P5 hosted CI Run `29678963136`: passed
 - Accepted Gate 5S-A/B/C hashes: unchanged
 - Inherited Sprint 10 files: preserved and excluded
 - Screenshots/recording: not separately authorized; none created
@@ -161,30 +163,14 @@ remains available for a later explicit decision.
 | No real dataset, publisher contact, live capture, online inference, or enforcement | PASS by scope review |
 | Screenshots/recording review | Not applicable; not authorized |
 
-The gate remains uncommitted and is ready for owner review. Gate P5
-publication, tagging, release, upload, and any later gate remain unauthorized.
+The Gate P5 files were reviewed, committed, pushed to public `main`, and passed
+hosted CI. Tagging, release, upload, and any later gate remain unauthorized.
 
-**Gate P5 decision:** READY FOR OWNER REVIEW — publication and all later gates
+**Gate P5 decision:** APPROVED — published to public `main`; all later gates
 remain unauthorized.
 
 ## 7. Exact next review/publication prompt
 
-> Review the complete uncommitted AegisAI NIDPS Gate P5 implementation and
-> `docs/POST_MVP_GATE_P5_COMPLETION_REPORT.md`. Confirm that the diff contains
-> only Gate P5 portfolio documentation, metadata-only evidence tooling/tests,
-> and synthetic demonstration materials, excluding inherited Sprint 10 files.
-> Re-run all applicable reproducibility, synthetic-determinism, hash,
-> limitation/flag, claim, RBAC, CSRF/Origin, audit, retention,
-> artifact-integrity, Celery, Docker, health, dependency/SBOM, secret,
-> large-file, frontend, accessibility, and simulation-only checks.
->
-> Confirm that no screenshots or recordings were created without separate
-> approval, no real or third-party dataset bytes are present, UNSW-NB15 remains
-> blocked, publisher outreach remains cancelled, the sealed test remains closed,
-> and no model activation, online inference, alert/detection/incident mutation,
-> live capture, or prevention capability exists.
->
-> If no Critical or High issue remains, create one reviewed Gate P5 commit,
-> push it to public `main`, run hosted CI, correct only Gate P5 CI failures,
-> update this report, and stop. Do not begin any later gate or prohibited
-> capability without separate authorization.
+Publication is complete. Any next step requires a new, separately authorized
+owner prompt; do not begin a later gate or prohibited capability from this
+report.
